@@ -1,16 +1,22 @@
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::collections::HashMap;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Arc;
 
-use eyre::{eyre, OptionExt, Result};
+use eyre::OptionExt;
+use eyre::Result;
+use eyre::eyre;
 use holda::Holda;
-use img_hash::{HashAlg, Hasher as ImgHasher, HasherConfig, ImageHash};
+use img_hash::HashAlg;
+use img_hash::Hasher as ImgHasher;
+use img_hash::HasherConfig;
+use img_hash::ImageHash;
 use positioned_io::RandomAccessFile;
 use rc_zip_tokio::ReadZip;
 use tokio::task::JoinSet;
-use tracing::{error, info, warn};
+use tracing::error;
+use tracing::info;
+use tracing::warn;
 
 // Define PathToZip and PathInsideZip structs
 #[derive(Holda)]
@@ -145,7 +151,9 @@ async fn main() -> Result<()> {
             // Check if entry is a directory by looking at its name (common practice)
             // or by specific flags if available (rc_zip might have a method like entry.is_directory() or similar)
             // For now, assuming directories might end with a '/'
-            let name = entry.sanitized_name().ok_or_eyre(eyre!("Invalid entry name in {}", zip_path_obj))?;
+            let name = entry
+                .sanitized_name()
+                .ok_or_eyre(eyre!("Invalid entry name in {}", zip_path_obj))?;
             if name.ends_with('/') {
                 continue;
             }

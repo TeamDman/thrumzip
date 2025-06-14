@@ -1,10 +1,11 @@
-use std::{
-    collections::{HashMap, HashSet},
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Arc;
 
-use eyre::{OptionExt, eyre};
+use eyre::OptionExt;
+use eyre::eyre;
 use holda::Holda;
 use positioned_io::RandomAccessFile;
 use rc_zip_tokio::ReadZip;

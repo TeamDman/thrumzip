@@ -1,16 +1,17 @@
 // this is too slow.
 
-use std::{
-    collections::{HashMap, HashSet},
-    hash::Hasher,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
-use std::collections::hash_map::DefaultHasher;
-use eyre::{Result, eyre};
+use eyre::Result;
+use eyre::eyre;
+use holda::Holda;
 use positioned_io::RandomAccessFile;
 use rc_zip_tokio::ReadZip;
-use holda::Holda;
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hasher;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Arc;
 
 #[derive(Holda)]
 #[holda(NoDisplay)]
@@ -44,17 +45,20 @@ async fn main() -> Result<()> {
     // let dirs = vec![&args[1], &args[2]];
     let existing_zip_dir = r"C:\Users\TeamD\OneDrive\Documents\Backups\meta\facebook 2024-06";
     let new_zip_dir = r"C:\Users\TeamD\Downloads\facebookexport";
-    let dirs = [
-        existing_zip_dir,
-        new_zip_dir,
-    ];
+    let dirs = [existing_zip_dir, new_zip_dir];
     // Collect zip files from both directories
     let mut zip_paths: Vec<PathToZip> = Vec::new();
     for dir in &dirs {
         for entry in std::fs::read_dir(dir)? {
             let entry = entry?;
-            if entry.path().extension().map_or(false, |e| e.eq_ignore_ascii_case("zip")) {
-                zip_paths.push(PathToZip { inner: entry.path() });
+            if entry
+                .path()
+                .extension()
+                .map_or(false, |e| e.eq_ignore_ascii_case("zip"))
+            {
+                zip_paths.push(PathToZip {
+                    inner: entry.path(),
+                });
             }
         }
     }
@@ -71,7 +75,9 @@ async fn main() -> Result<()> {
             let name_buf = entry
                 .sanitized_name()
                 .ok_or_else(|| eyre!("Invalid entry name"))?;
-            let name = PathInsideZip { inner: PathBuf::from(name_buf) };
+            let name = PathInsideZip {
+                inner: PathBuf::from(name_buf),
+            };
             entry_map.entry(name).or_default().push(zip.clone());
         }
     }
@@ -83,9 +89,11 @@ async fn main() -> Result<()> {
         for zip in &zips {
             let f = Arc::new(RandomAccessFile::open(&zip.inner)?);
             let archive = f.read_zip().await?;
-            if let Some(entry) = archive.entries()
-                .find(|e| e.sanitized_name().map(|n| PathBuf::from(n) == name.inner).unwrap_or(false))
-            {
+            if let Some(entry) = archive.entries().find(|e| {
+                e.sanitized_name()
+                    .map(|n| PathBuf::from(n) == name.inner)
+                    .unwrap_or(false)
+            }) {
                 let data = entry.bytes().await?;
                 let mut hasher = DefaultHasher::new();
                 hasher.write(&data);
