@@ -1,0 +1,2 @@
+- Newer archives SHOULD contain all entries present in older archives
+- Archive entries with duplicate keys MUST have 99% similar perceptual content hashes
