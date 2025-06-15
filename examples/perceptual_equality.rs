@@ -154,6 +154,7 @@ async fn main() -> Result<()> {
             let name = entry
                 .sanitized_name()
                 .ok_or_eyre(eyre!("Invalid entry name in {}", zip_path_obj))?;
+            let name = entry.sanitized_name().ok_or_eyre(eyre!("Invalid entry name in {}", zip_path_obj))?;
             if name.ends_with('/') {
                 continue;
             }
