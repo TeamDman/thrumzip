@@ -1,6 +1,9 @@
 use eyre::Result;
 use eyre::eyre;
 use holda::Holda;
+use humansize::DECIMAL;
+use humansize::format_size;
+use humantime::format_duration;
 use image::load_from_memory;
 use img_hash::HashAlg;
 use img_hash::HasherConfig;
@@ -12,14 +15,19 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::sync::Arc as StdArc;
+use std::sync::Mutex;
+use std::sync::atomic::AtomicU64;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering;
+use std::thread;
+use std::time::Duration;
+use std::time::Instant;
 use tokio::task::JoinSet;
 use tracing::info;
 use tracing::warn;
-use std::time::{Instant, Duration};
-use std::sync::{Mutex, Arc as StdArc};
-use std::thread;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use humantime::format_duration;
+use uom::si::f64::Information;
+use uom::si::information::byte;
 
 #[derive(Holda)]
 #[holda(NoDisplay)]
@@ -55,6 +63,7 @@ fn image_hasher() -> img_hash::Hasher {
 struct RawInfo {
     zip: PathToZip,
     crc: u32,
+    size: u64,
 }
 
 #[tokio::main]
@@ -122,6 +131,7 @@ async fn main() -> Result<()> {
                             RawInfo {
                                 zip: z.clone(),
                                 crc: ent.crc32,
+                                size: ent.uncompressed_size,
                             },
                         ));
                     }
@@ -164,7 +174,13 @@ async fn main() -> Result<()> {
     }
     impl DistStats {
         fn new() -> Self {
-            Self { count: 0, sum: 0, min: u32::MAX, max: 0, values: Vec::new() }
+            Self {
+                count: 0,
+                sum: 0,
+                min: u32::MAX,
+                max: 0,
+                values: Vec::new(),
+            }
         }
         fn add(&mut self, d: u32) {
             self.count += 1;
@@ -174,20 +190,41 @@ async fn main() -> Result<()> {
             self.values.push(d);
         }
         fn mean(&self) -> f64 {
-            if self.count == 0 { 0.0 } else { self.sum as f64 / self.count as f64 }
+            if self.count == 0 {
+                0.0
+            } else {
+                self.sum as f64 / self.count as f64
+            }
         }
         fn stddev(&self) -> f64 {
-            if self.count == 0 { return 0.0; }
+            if self.count == 0 {
+                return 0.0;
+            }
             let mean = self.mean();
-            let var = self.values.iter().map(|&v| {
-                let d = v as f64 - mean;
-                d*d
-            }).sum::<f64>() / self.count as f64;
+            let var = self
+                .values
+                .iter()
+                .map(|&v| {
+                    let d = v as f64 - mean;
+                    d * d
+                })
+                .sum::<f64>()
+                / self.count as f64;
             var.sqrt()
         }
     }
 
     let total_batches = diff_entries.len();
+    // Compute total bytes to process
+    let total_bytes: u64 = diff_entries
+        .iter()
+        .flat_map(|(_, infos)| infos.iter().map(|i| i.size))
+        .sum();
+    info!(
+        "Total bytes to process: {}",
+        format_size(total_bytes, DECIMAL)
+    );
+    let processed_bytes = StdArc::new(AtomicU64::new(0));
     let processed_batches = StdArc::new(AtomicUsize::new(0));
     let exceeding_names = StdArc::new(Mutex::new(HashSet::new()));
     let stats_exceed = StdArc::new(Mutex::new(DistStats::new()));
@@ -195,9 +232,12 @@ async fn main() -> Result<()> {
     let start = Instant::now();
     let iter_count = StdArc::new(AtomicUsize::new(0));
 
-    // Stats printer thread
+    // Stats printer thread with byte-rate ETA
     {
+        // clone required counters
         let processed_batches = processed_batches.clone();
+        let processed_bytes = processed_bytes.clone();
+        let total_bytes = total_bytes;
         let exceeding_names = exceeding_names.clone();
         let stats_exceed = stats_exceed.clone();
         let stats_ok = stats_ok.clone();
@@ -207,22 +247,55 @@ async fn main() -> Result<()> {
             loop {
                 thread::sleep(Duration::from_secs(1));
                 let elapsed = start.elapsed().as_secs_f64();
-                let done = processed_batches.load(Ordering::Relaxed);
-                let total = total_batches;
-                let eta = if done > 0 {
-                    let secs = (elapsed / done as f64) * (total as f64 - done as f64);
-                    Some(Duration::from_secs_f64(secs.max(0.0)))
-                } else { None };
+                let done_batches = processed_batches.load(Ordering::Relaxed);
+                let done_bytes = processed_bytes.load(Ordering::Relaxed);
+                let rate_bps = if elapsed > 0.0 {
+                    done_bytes as f64 / elapsed
+                } else {
+                    0.0
+                };
+                let remaining_bytes = total_bytes.saturating_sub(done_bytes);
+                let eta = if rate_bps > 0.0 {
+                    let secs = remaining_bytes as f64 / rate_bps;
+                    Some(Duration::from_secs_f64(secs))
+                } else {
+                    None
+                };
                 let iters = iter_count.swap(0, Ordering::Relaxed);
                 let ex = exceeding_names.lock().unwrap().len();
                 let stats_ex = stats_exceed.lock().unwrap().clone();
                 let stats_ok = stats_ok.lock().unwrap().clone();
-                println!("[STATS] {}/{} batches, {:.2} it/s, ETA {}, exceeding: {}", done, total, iters as f64, eta.map(|d| format_duration(d).to_string()).unwrap_or("--".to_string()), ex);
+                println!(
+                    "[STATS] {}/{} batches, {:.2} it/s, processed {}, rate {}/s, remaining {}, ETA {}, exceeding: {}",
+                    done_batches,
+                    total_batches,
+                    iters as f64,
+                    format_size(done_bytes, DECIMAL),
+                    format_size(rate_bps as u64, DECIMAL),
+                    format_size(remaining_bytes, DECIMAL),
+                    eta.map(|d| format_duration(d).to_string())
+                        .unwrap_or("--".to_string()),
+                    ex
+                );
                 if stats_ex.count > 0 {
-                    println!("  >exceed: min {}, max {}, mean {:.2}, stddev {:.2}, count {}", stats_ex.min, stats_ex.max, stats_ex.mean(), stats_ex.stddev(), stats_ex.count);
+                    println!(
+                        "  >exceed: min {}, max {}, mean {:.2}, stddev {:.2}, count {}",
+                        stats_ex.min,
+                        stats_ex.max,
+                        stats_ex.mean(),
+                        stats_ex.stddev(),
+                        stats_ex.count
+                    );
                 }
                 if stats_ok.count > 0 {
-                    println!("  <=ok:    min {}, max {}, mean {:.2}, stddev {:.2}, count {}", stats_ok.min, stats_ok.max, stats_ok.mean(), stats_ok.stddev(), stats_ok.count);
+                    println!(
+                        "  <=ok:    min {}, max {}, mean {:.2}, stddev {:.2}, count {}",
+                        stats_ok.min,
+                        stats_ok.max,
+                        stats_ok.mean(),
+                        stats_ok.stddev(),
+                        stats_ok.count
+                    );
                 }
             }
         });
@@ -238,6 +311,7 @@ async fn main() -> Result<()> {
         for info in infos {
             let pi = pi.clone();
             let zi = info.zip.clone();
+            let size = info.size;
             group_set.spawn(async move {
                 let f = Arc::new(RandomAccessFile::open(&zi.inner)?);
                 let arch = f.read_zip().await?;
@@ -247,15 +321,18 @@ async fn main() -> Result<()> {
                 let data = ent.bytes().await?;
                 let img = load_from_memory(&data)?;
                 let hash = image_hasher().hash_image(&img);
-                Ok::<_, eyre::Report>((zi, hash))
+                Ok::<_, eyre::Report>((zi, hash, size))
             });
         }
 
         // Collect hashed results as they complete
+        // Collect hashed results and accumulate processed bytes
         let mut results: Vec<(PathToZip, ImageHash)> = Vec::with_capacity(infos_count);
         while let Some(res) = group_set.join_next().await {
-            let (zi, h) = res??;
-            // info!("Hashed {} from {}", pi.display(), zi.display());
+            // res yields (PathToZip, ImageHash, size)
+            let (zi, h, sz) = res??;
+            // accumulate processed bytes
+            processed_bytes.fetch_add(sz, Ordering::Relaxed);
             results.push((zi, h));
         }
 
