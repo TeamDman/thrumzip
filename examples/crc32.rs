@@ -1,11 +1,16 @@
 // filepath: g:\Programming\Repos\meta-takeout\examples\check_crc32.rs
-use std::{collections::HashMap, path::PathBuf, sync::Arc, time::SystemTime};
-use eyre::{eyre, Result};
-use positioned_io::RandomAccessFile;
-use rc_zip_tokio::ReadZip;
-use tokio::task::JoinSet;
-use rand::{seq::IteratorRandom, thread_rng};
 use crc32fast::Hasher as Crc32Hasher;
+use eyre::Result;
+use eyre::eyre;
+use positioned_io::RandomAccessFile;
+use rand::seq::IteratorRandom;
+use rand::thread_rng;
+use rc_zip_tokio::ReadZip;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::SystemTime;
+use tokio::task::JoinSet;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -20,7 +25,11 @@ async fn main() -> Result<()> {
         for entry in std::fs::read_dir(dir)? {
             let entry = entry?;
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()).map_or(false, |ext| ext.eq_ignore_ascii_case("zip")) {
+            if path
+                .extension()
+                .and_then(|s| s.to_str())
+                .map_or(false, |ext| ext.eq_ignore_ascii_case("zip"))
+            {
                 let meta = std::fs::metadata(&path)?;
                 let modified = meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);
                 zip_paths.push((path, modified));
@@ -43,8 +52,12 @@ async fn main() -> Result<()> {
             let f = Arc::new(RandomAccessFile::open(&path_clone)?);
             let archive = f.read_zip().await?;
             for entry in archive.entries() {
-                let name = entry.sanitized_name().ok_or(eyre!("Invalid entry in {:?}", path_clone))?;
-                if name.ends_with('/') { continue; }
+                let name = entry
+                    .sanitized_name()
+                    .ok_or(eyre!("Invalid entry in {:?}", path_clone))?;
+                if name.ends_with('/') {
+                    continue;
+                }
                 let key = name.to_owned();
                 let crc = entry.crc32;
                 let size = entry.uncompressed_size;
@@ -73,7 +86,15 @@ async fn main() -> Result<()> {
 
     // Stats by file extension
     #[derive(Default)]
-    struct Stats { count: usize, matches: usize, not_matches: usize, zeros: usize, newer_larger: usize, newer_smaller: usize, newer_equal: usize }
+    struct Stats {
+        count: usize,
+        matches: usize,
+        not_matches: usize,
+        zeros: usize,
+        newer_larger: usize,
+        newer_smaller: usize,
+        newer_equal: usize,
+    }
     let mut ext_stats: HashMap<String, Stats> = HashMap::new();
     // Global entry history: key -> Vec<(crc, modified, size)>
     let mut global_map: HashMap<String, Vec<(u32, SystemTime, u64)>> = HashMap::new();
@@ -84,7 +105,11 @@ async fn main() -> Result<()> {
         let (local_map, local_valid) = res??;
         for (key, (crc, modified, size)) in local_map {
             // Determine extension
-            let ext = PathBuf::from(&key).extension().and_then(|s| s.to_str()).unwrap_or("").to_string();
+            let ext = PathBuf::from(&key)
+                .extension()
+                .and_then(|s| s.to_str())
+                .unwrap_or("")
+                .to_string();
             let stats = ext_stats.entry(ext.clone()).or_default();
             // Count unique entries per extension
             let history = global_map.entry(key.clone()).or_insert_with(Vec::new);
@@ -98,18 +123,29 @@ async fn main() -> Result<()> {
             // Compare against previous entries for this key
             for &(prev_crc, prev_mod, prev_size) in history.iter() {
                 if crc != 0 && prev_crc != 0 {
-                    if crc == prev_crc { stats.matches += 1; }
-                    else { stats.not_matches += 1; }
+                    if crc == prev_crc {
+                        stats.matches += 1;
+                    } else {
+                        stats.not_matches += 1;
+                    }
                 }
                 // newer size comparisons with equal
                 if modified > prev_mod {
-                    if size > prev_size { stats.newer_larger += 1; }
-                    else if size < prev_size { stats.newer_smaller += 1; }
-                    else { stats.newer_equal += 1; }
+                    if size > prev_size {
+                        stats.newer_larger += 1;
+                    } else if size < prev_size {
+                        stats.newer_smaller += 1;
+                    } else {
+                        stats.newer_equal += 1;
+                    }
                 } else if prev_mod > modified {
-                    if prev_size > size { stats.newer_larger += 1; }
-                    else if prev_size < size { stats.newer_smaller += 1; }
-                    else { stats.newer_equal += 1; }
+                    if prev_size > size {
+                        stats.newer_larger += 1;
+                    } else if prev_size < size {
+                        stats.newer_smaller += 1;
+                    } else {
+                        stats.newer_equal += 1;
+                    }
                 }
             }
             // Record this instance
@@ -118,7 +154,11 @@ async fn main() -> Result<()> {
         // Collect validation results
         for ok in local_valid {
             total_validations += 1;
-            if ok { total_pass += 1; } else { total_fail += 1; }
+            if ok {
+                total_pass += 1;
+            } else {
+                total_fail += 1;
+            }
         }
     }
     // Print final stats per extension, sorted by count descending

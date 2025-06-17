@@ -1,8 +1,12 @@
 // filepath: g:\Programming\Repos\meta-takeout\examples\uncompressed_size_calculator.rs
-use std::{collections::HashMap, path::PathBuf, sync::Arc, time::SystemTime};
-use eyre::{eyre, Result};
+use eyre::Result;
+use eyre::eyre;
 use positioned_io::RandomAccessFile;
 use rc_zip_tokio::ReadZip;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::SystemTime;
 use tokio::task::JoinSet;
 
 fn format_bytes(bytes: u64) -> String {
@@ -30,7 +34,11 @@ async fn main() -> Result<()> {
         for entry in std::fs::read_dir(dir)? {
             let entry = entry?;
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()).map_or(false, |ext| ext.eq_ignore_ascii_case("zip")) {
+            if path
+                .extension()
+                .and_then(|s| s.to_str())
+                .map_or(false, |ext| ext.eq_ignore_ascii_case("zip"))
+            {
                 let meta = std::fs::metadata(&path)?;
                 let modified = meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);
                 zip_paths.push((path, modified));
@@ -50,12 +58,18 @@ async fn main() -> Result<()> {
             let f = Arc::new(RandomAccessFile::open(&path)?);
             let archive = f.read_zip().await?;
             for entry in archive.entries() {
-                let name = entry.sanitized_name().ok_or(eyre!("Invalid entry in {:?}", path))?;
-                if name.ends_with('/') { continue; }
+                let name = entry
+                    .sanitized_name()
+                    .ok_or(eyre!("Invalid entry in {:?}", path))?;
+                if name.ends_with('/') {
+                    continue;
+                }
                 let key = name.to_owned();
                 let size = entry.uncompressed_size;
                 if let Some((prev_mod, _)) = local.get(&key) {
-                    if *prev_mod >= modified { continue; }
+                    if *prev_mod >= modified {
+                        continue;
+                    }
                 }
                 local.insert(key, (modified, size));
             }
@@ -70,13 +84,19 @@ async fn main() -> Result<()> {
         for (key, (mod_time, size)) in local_map {
             match entry_map.get(&key) {
                 Some((prev, _)) if *prev >= mod_time => continue,
-                _ => { entry_map.insert(key, (mod_time, size)); }
+                _ => {
+                    entry_map.insert(key, (mod_time, size));
+                }
             }
         }
     }
 
     // Sum uncompressed sizes for latest variants
     let total: u64 = entry_map.values().map(|&(_, size)| size).sum();
-    println!("Total uncompressed size: {} ({})", total, format_bytes(total));
+    println!(
+        "Total uncompressed size: {} ({})",
+        total,
+        format_bytes(total)
+    );
     Ok(())
 }

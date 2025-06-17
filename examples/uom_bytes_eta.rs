@@ -1,9 +1,11 @@
 // Toy demonstration: UOM + humantime + humansize for ETA/progress
-use humansize::{format_size, DECIMAL};
+use humansize::DECIMAL;
+use humansize::format_size;
 use humantime::format_duration;
 use rand::Rng;
 use std::thread::sleep;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use std::time::Instant;
 use uom::si::f64::Information;
 use uom::si::information::byte;
 
@@ -77,7 +79,8 @@ fn main() {
             bytes_this_sec = 0.0;
         }
     }
-    println!("Done! Processed {} batches, {} files, {} total.",
+    println!(
+        "Done! Processed {} batches, {} files, {} total.",
         processed_batches,
         processed_files,
         format_size(processed_bytes.get::<byte>() as u64, DECIMAL)

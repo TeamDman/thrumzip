@@ -1,13 +1,16 @@
 [package]
-name = "meta-takeout"
+name = "meta_takeout"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+async-trait = "0.1"
+clap = { version = "4.4", features = ["derive"] }
 cloud_terrastodon_user_input = "0.14.0"
 color-eyre = "0.6.5"
 crc32fast = "1.3"
 duckdb = { version = "1.3.0", features = ["bundled"] }
+eye_config = "0.2.0"
 eyre = "0.6.12"
 holda = "0.1.0"
 humansize = "2.1.3"
@@ -19,7 +22,13 @@ positioned-io = "0.3.4"
 rand = "0.8"
 rc-zip = "5.3.1"
 rc-zip-tokio = "4.2.6"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 tokio = { version = "1.45.1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt", "time"] }
 uom = "0.37.0"
+
+[patch.crates-io]
+rc-zip-tokio = { path = "G:/Programming/repos/rc-zip/rc-zip-tokio" }
+rc-zip = { path = "G:/Programming/repos/rc-zip/rc-zip" }

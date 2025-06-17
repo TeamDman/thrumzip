@@ -1,8 +1,13 @@
 // filepath: g:\Programming\Repos\meta-takeout\examples\check_presence.rs
-use std::{collections::{HashMap, HashSet}, path::PathBuf, sync::Arc, time::SystemTime};
-use eyre::{eyre, Result};
+use eyre::Result;
+use eyre::eyre;
 use positioned_io::RandomAccessFile;
 use rc_zip_tokio::ReadZip;
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::SystemTime;
 use tokio::task::JoinSet;
 
 #[tokio::main]
@@ -18,7 +23,11 @@ async fn main() -> Result<()> {
         for entry in std::fs::read_dir(dir)? {
             let entry = entry?;
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()).map_or(false, |ext| ext.eq_ignore_ascii_case("zip")) {
+            if path
+                .extension()
+                .and_then(|s| s.to_str())
+                .map_or(false, |ext| ext.eq_ignore_ascii_case("zip"))
+            {
                 let meta = std::fs::metadata(&path)?;
                 let modified = meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);
                 zip_paths.push((path, modified));
@@ -38,7 +47,11 @@ async fn main() -> Result<()> {
             new_paths.push(path.clone());
         }
     }
-    println!("Found {} old ZIPs and {} new ZIPs", older_paths.len(), new_paths.len());
+    println!(
+        "Found {} old ZIPs and {} new ZIPs",
+        older_paths.len(),
+        new_paths.len()
+    );
 
     // Parallel scan: build map per zip of dir -> set of file names
     let mut tasks = JoinSet::new();
@@ -49,10 +62,17 @@ async fn main() -> Result<()> {
             let f = Arc::new(RandomAccessFile::open(&path_clone)?);
             let archive = f.read_zip().await?;
             for entry in archive.entries() {
-                let name = entry.sanitized_name().ok_or(eyre!("Invalid entry in {:?}", path_clone))?;
-                if name.ends_with('/') { continue; }
+                let name = entry
+                    .sanitized_name()
+                    .ok_or(eyre!("Invalid entry in {:?}", path_clone))?;
+                if name.ends_with('/') {
+                    continue;
+                }
                 let pb: PathBuf = PathBuf::from(name);
-                let dir = pb.parent().map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|| "".to_string());
+                let dir = pb
+                    .parent()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "".to_string());
                 let file = pb.file_name().unwrap().to_string_lossy().to_string();
                 dir_map.entry(dir).or_default().insert(file);
             }
@@ -72,7 +92,10 @@ async fn main() -> Result<()> {
     for path in older_paths {
         if let Some(map) = per_zip.get(&path) {
             for (dir, files) in map {
-                older_map.entry(dir.clone()).or_default().extend(files.iter().cloned());
+                older_map
+                    .entry(dir.clone())
+                    .or_default()
+                    .extend(files.iter().cloned());
             }
         }
     }
@@ -80,7 +103,10 @@ async fn main() -> Result<()> {
     for path in new_paths {
         if let Some(map) = per_zip.get(&path) {
             for (dir, files) in map {
-                new_map.entry(dir.clone()).or_default().extend(files.iter().cloned());
+                new_map
+                    .entry(dir.clone())
+                    .or_default()
+                    .extend(files.iter().cloned());
             }
         }
     }

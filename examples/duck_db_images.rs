@@ -1,7 +1,11 @@
-use eyre::Result;
 use color_eyre::install;
-use duckdb::{Connection, params};
-use image::{DynamicImage, ImageOutputFormat, RgbaImage, Rgba};
+use duckdb::Connection;
+use duckdb::params;
+use eyre::Result;
+use image::DynamicImage;
+use image::ImageOutputFormat;
+use image::Rgba;
+use image::RgbaImage;
 use std::fs;
 
 fn main() -> Result<()> {
@@ -11,9 +15,7 @@ fn main() -> Result<()> {
     let conn = Connection::open("images.db")?;
 
     // Create a table for images
-    conn.execute_batch(
-        "CREATE TABLE IF NOT EXISTS images(name TEXT, data BLOB);"
-    )?;
+    conn.execute_batch("CREATE TABLE IF NOT EXISTS images(name TEXT, data BLOB);")?;
 
     // Generate a 50x50 solid yellow image
     let width = 50;
@@ -29,7 +31,7 @@ fn main() -> Result<()> {
     // Insert the image blob into the database
     conn.execute(
         "INSERT INTO images (name, data) VALUES (?, ?)",
-        params!["yellow", buf]
+        params!["yellow", buf],
     )?;
 
     // Query back the images and save to files

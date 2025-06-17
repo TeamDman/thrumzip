@@ -105,7 +105,9 @@ async fn main() -> Result<()> {
         if let Some(fname) = entry.file_name().to_str() {
             if let Some(nstr) = fname.splitn(2, '_').next() {
                 if let Ok(n) = nstr.parse::<u32>() {
-                    if n > max_n { max_n = n; }
+                    if n > max_n {
+                        max_n = n;
+                    }
                 }
             }
         }
@@ -115,7 +117,10 @@ async fn main() -> Result<()> {
     // For each selected entry, extract from all zips containing it
     for choice in selected.into_iter() {
         let (entry_name_path, zips) = choice.value;
-        let entry_filename = entry_name_path.file_name().and_then(|f| f.to_str()).unwrap_or("");
+        let entry_filename = entry_name_path
+            .file_name()
+            .and_then(|f| f.to_str())
+            .unwrap_or("");
         let entry_dir = out_dir.join(format!("{:04}_{}", next_n, entry_filename));
         async_fs::create_dir_all(&entry_dir).await?;
         let mut provenance = String::new();
@@ -138,7 +143,12 @@ async fn main() -> Result<()> {
             }
             println!("Writing {} bytes to {}", data.len(), out_path.display());
             async_fs::write(&out_path, &data).await?;
-            provenance.push_str(&format!("{:04}_{} <- {}\n", k + 1, entry_filename, zip.inner.display()));
+            provenance.push_str(&format!(
+                "{:04}_{} <- {}\n",
+                k + 1,
+                entry_filename,
+                zip.inner.display()
+            ));
             println!("Extracted {} to {}", entry_filename, out_path.display());
         }
         // Write provenance.txt
