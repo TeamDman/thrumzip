@@ -48,12 +48,12 @@ pub async fn sync_unambiguous_entries(
         let throughput = throughput.clone();
         let processed_bytes = entry.size_of();
         let destination = destination.to_path_buf();
+        let dest = entry.get_splat_path(&destination, false)?;
         join_set.spawn(async move {
             let _permit = match throughput.as_ref() {
                 Some(sem) => Some(sem.acquire().await),
                 None => None,
             };
-            let dest = entry.get_splat_path(&destination, false)?;
             let (skipped, written) = if dest.exists() {
                 (1, 0)
             } else {

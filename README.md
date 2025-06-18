@@ -58,3 +58,7 @@ Presumably, Meta has compressed them better since the last export.
 Thankfully, the CRC values in the zip file match when we compute the CRC ourselves.
 
 Expectedly, the JSON files grow larger over time, though some remain the same or shrink.
+
+---
+
+Turns out that having `RUST_BACKTRACE="1"` causes `get_splat_path` to take a looot longer.
