@@ -1,5 +1,6 @@
 use crate::PathInsideZip;
 use crate::PathToZip;
+use crate::get_splat_path::DisambiguationStrategy;
 use crate::get_splat_path::get_splat_path;
 use eyre::Context;
 use positioned_io::RandomAccessFile;
@@ -36,9 +37,12 @@ impl ZipEntry {
     pub fn get_splat_path(&self, dest_dir: &Path, disambiguate: bool) -> eyre::Result<PathBuf> {
         Ok(get_splat_path(
             &self.path_inside_zip,
-            &self.path_to_zip,
             dest_dir,
-            disambiguate,
+            disambiguate
+                .then(|| DisambiguationStrategy::Some {
+                    path_to_zip: self.path_to_zip.clone(),
+                })
+                .unwrap_or_else(|| DisambiguationStrategy::None),
         )?)
     }
     pub async fn write_to_file(&self, dest: &Path) -> eyre::Result<()> {

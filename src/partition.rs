@@ -1,8 +1,8 @@
 use crate::PathInsideZip;
 use crate::zip_entry::ZipEntry;
-use itertools::Itertools;
 use std::collections::HashMap;
 
+/// Created using a partition strategy's partition method.
 #[derive(Default)]
 pub struct Partition {
     /// Entries with names for which no other entries with the same name and different CRC exist.
@@ -14,21 +14,12 @@ impl Partition {
     pub fn len(&self) -> usize {
         self.unambiguous_entries.len() + self.ambiguous_entries.len()
     }
+    pub fn new_empty() -> Self {
+        Self::default()
+    }
 }
 
-impl From<Vec<ZipEntry>> for Partition {
-    fn from(entries: Vec<ZipEntry>) -> Self {
-        let entries_by_name = entries
-            .into_iter()
-            .into_group_map_by(|entry| entry.path_inside_zip.clone());
-        let mut rtn = Self::default();
-        for (path, group) in entries_by_name {
-            if group.len() == 1 {
-                rtn.unambiguous_entries.insert(path, group.into_iter().next().unwrap());
-            } else {
-                rtn.ambiguous_entries.insert(path, group);
-            }
-        }
-        rtn
-    }
+pub trait PartitionStrategy {
+    type Input;
+    fn partition(entries: Self::Input) -> Partition;
 }

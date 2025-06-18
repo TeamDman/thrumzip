@@ -1,6 +1,5 @@
 use humansize::DECIMAL;
 use itertools::Itertools;
-use uom::si::time::millisecond;
 use std::time::Duration;
 use std::time::Instant;
 use uom::si::f64::Information;
@@ -8,6 +7,7 @@ use uom::si::f64::InformationRate;
 use uom::si::f64::Time;
 use uom::si::information::byte;
 use uom::si::information_rate::byte_per_second;
+use uom::si::time::millisecond;
 use uom::si::time::second;
 
 pub struct Progress {
@@ -41,8 +41,10 @@ impl Progress {
 
 impl std::fmt::Display for Progress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // 1.2 GB/s, 60.1 GB remain, 16m 22s ETA, 14 files per second
-        let window = Duration::from_secs(5);
+        // How far back in time do we want to base our estimation on?
+        // let window = Duration::from_secs(5); // 5 seconds
+        let window = Duration::MAX; // Use all history for estimation
+
         let window_entries = self
             .history
             .iter()
@@ -83,12 +85,24 @@ impl std::fmt::Display for Progress {
         let display_eta = humantime::format_duration(remaining_time);
         let display_items_per_second = format!("{:.1}", items_per_second);
 
-        let display_elapsed =
+        let elapsed_time_str =
             humantime::format_duration(Duration::from_millis(elapsed.get::<millisecond>() as u64));
+
+        let files_remaining_str = if self.total_items > 0 {
+            format!(
+                "{}/{}",
+                self.total_items - items_processed,
+                self.total_items
+            )
+        } else {
+            String::from("0")
+        };
         write!(
             f,
-            "{display_elapsed} elapsed, {display_data_rate}, {display_remaining_size} remain, {display_eta} ETA, {display_items_per_second} files/s"
+            "{elapsed_time_str} elapsed, {display_data_rate}, {display_remaining_size} remain, {display_eta} ETA, {display_items_per_second} files/s, {files_remaining_str} files remaining",
         )?;
         Ok(())
     }
 }
+
+
