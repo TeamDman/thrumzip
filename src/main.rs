@@ -1,5 +1,5 @@
 pub mod command;
-pub mod config;
+pub mod config_command;
 pub mod config_state;
 pub mod count_files;
 pub mod get_zips;
@@ -9,6 +9,10 @@ pub mod read_entries_from_zips;
 pub mod sync;
 pub mod zip_entry;
 pub mod partition;
+pub mod config_init_command;
+pub mod config_show_command;
+pub mod progress;
+pub mod get_splat_path;
 use clap::Parser;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::WrapErr;

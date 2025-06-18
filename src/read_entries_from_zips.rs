@@ -10,6 +10,7 @@ use tokio::task::JoinSet;
 use tracing::info;
 use tracing::warn;
 
+/// Returns file entries from inside provided zip files.
 pub async fn read_entries_from_zips(zips: Vec<PathToZip>) -> eyre::Result<Vec<ZipEntry>> {
     info!("Reading entries from {} zips", zips.len());
     if zips.is_empty() {
@@ -27,6 +28,7 @@ pub async fn read_entries_from_zips(zips: Vec<PathToZip>) -> eyre::Result<Vec<Zi
         let zip_entries = res??;
         rtn.extend(zip_entries);
     }
+    rtn.retain(|e| e.is_file());
     Ok(rtn)
 }
 

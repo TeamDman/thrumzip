@@ -3,7 +3,7 @@ use clap::Parser;
 use clap::Subcommand;
 use eyre::Result;
 
-use crate::config::ConfigCommand;
+use crate::config_command::ConfigCommand;
 use crate::sync::SyncCommand;
 
 
