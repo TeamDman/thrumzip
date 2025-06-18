@@ -106,6 +106,38 @@ where
     }
 }
 
+impl<A, B, C> KnownSize for (A, B, C)
+where
+    A: KnownSize,
+    B: KnownSize,
+    C: KnownSize,
+{
+    fn size_in_bytes(&self) -> usize {
+        self.0.size_in_bytes() + self.1.size_in_bytes() + self.2.size_in_bytes()
+    }
+}
+
+impl<A, B, C, D> KnownSize for (A, B, C, D)
+where
+    A: KnownSize,
+    B: KnownSize,
+    C: KnownSize,
+    D: KnownSize,
+{
+    fn size_in_bytes(&self) -> usize {
+        self.0.size_in_bytes()
+            + self.1.size_in_bytes()
+            + self.2.size_in_bytes()
+            + self.3.size_in_bytes()
+    }
+}
+
+impl KnownSize for usize {
+    fn size_in_bytes(&self) -> usize {
+        std::mem::size_of::<Self>()
+    }
+}
+
 pub trait KnownCount: Sized {
     /// Returns the length of the type.
     fn count(&self) -> usize;
@@ -118,5 +150,10 @@ impl<T: KnownCount> KnownCount for Vec<T> {
 impl<K: KnownCount, V: KnownCount> KnownCount for std::collections::HashMap<K, V> {
     fn count(&self) -> usize {
         self.iter().map(|(k, v)| k.count() + v.count()).sum()
+    }
+}
+impl<A: KnownCount, B: KnownCount, C: KnownCount> KnownCount for (A, B, C) {
+    fn count(&self) -> usize {
+        self.0.count() + self.1.count() + self.2.count()
     }
 }

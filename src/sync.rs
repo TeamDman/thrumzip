@@ -15,6 +15,8 @@ use color_eyre::eyre::WrapErr;
 use eye_config::persistable_state::PersistableState;
 use eyre::bail;
 use itertools::Itertools;
+use std::time::Duration;
+use std::usize;
 use tracing::info;
 
 #[derive(Args)]
@@ -82,9 +84,11 @@ impl SyncCommand {
             return Ok(());
         }
 
-        partition = UniqueImageHashPartitionStrategy { stop_after: 10 }
-            .partition(partition.ambiguous_entries)
-            .await?;
+        partition = UniqueImageHashPartitionStrategy {
+            stop_after: (usize::MAX, Duration::from_secs(10)),
+        }
+        .partition(partition.ambiguous_entries)
+        .await?;
         sync_unambiguous_entries(
             &cfg.destination,
             partition.unambiguous_entries.into_values().collect_vec(),
