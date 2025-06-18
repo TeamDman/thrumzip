@@ -1,5 +1,6 @@
 use crate::command::GlobalArgs;
 use crate::config_state::AppConfig;
+use crate::gather_existing_files::gather_existing_files;
 use crate::get_zips;
 use crate::partition::PartitionStrategy;
 use crate::partition::partition_strategy_unique_crc32::UniqueCrc32HashPartitionStrategy;
@@ -15,8 +16,9 @@ use color_eyre::eyre::WrapErr;
 use eye_config::persistable_state::PersistableState;
 use eyre::bail;
 use itertools::Itertools;
+use std::collections::HashMap;
+use std::ops::Not;
 use std::time::Duration;
-use std::usize;
 use tracing::info;
 
 #[derive(Args)]
@@ -28,6 +30,20 @@ impl SyncCommand {
         let cfg = AppConfig::load()
             .await
             .wrap_err("Failed to load configuration")?;
+
+        info!(
+            "Gathering files from destination: {}",
+            cfg.destination.display()
+        );
+        let existing_destination_files = gather_existing_files(&cfg.destination)
+            .await?
+            .into_iter()
+            .into_group_map_by(|entry| entry.path_inside_zip().to_owned());
+        info!(
+            "Found {} files in the destination ({})",
+            existing_destination_files.len(),
+            existing_destination_files.human_size()
+        );
 
         info!("Gathering zip files from sources...");
         let (zips, zips_size) = get_zips::get_zips(&cfg).await?;
@@ -45,7 +61,19 @@ impl SyncCommand {
             entries.human_size()
         );
 
-        let mut partition = UniqueNamePartitionStrategy.partition(entries).await?;
+        let mut not_on_disk = Vec::new();
+        for entry in entries {
+            if !existing_destination_files.contains_key(&entry.path_inside_zip) {
+                not_on_disk.push(entry);
+            }
+        }
+        info!(
+            "There are {} entries not on disk ({})",
+            not_on_disk.len(),
+            not_on_disk.human_size()
+        );
+
+        let mut partition = UniqueNamePartitionStrategy.partition(not_on_disk).await?;
         assert!(partition.unprocessed_entries.is_empty());
 
         sync_unambiguous_entries(
@@ -84,11 +112,15 @@ impl SyncCommand {
             return Ok(());
         }
 
-        partition = UniqueImageHashPartitionStrategy {
-            stop_after: (usize::MAX, Duration::from_secs(10)),
-        }
-        .partition(partition.ambiguous_entries)
-        .await?;
+        let partition_strategy = UniqueImageHashPartitionStrategy {
+            // stop_after: (std::usize::MAX, Duration::from_secs(10)),
+            stop_after: (std::usize::MAX, Duration::MAX),
+            // stop_after: (3, Duration::MAX),
+            similarity_threshold: 5,
+        };
+        partition = partition_strategy
+            .partition(partition.ambiguous_entries)
+            .await?;
         sync_unambiguous_entries(
             &cfg.destination,
             partition.unambiguous_entries.into_values().collect_vec(),
@@ -106,6 +138,31 @@ impl SyncCommand {
         if partition.unprocessed_entries.is_empty() && partition.ambiguous_entries.is_empty() {
             info!("No ambiguous entries to process");
             return Ok(());
+        }
+
+        if partition.unprocessed_entries.is_empty().not() {
+            let mut ambiguous = HashMap::new();
+            loop {
+                let new_partition = partition_strategy
+                    .partition(partition.unprocessed_entries)
+                    .await?;
+
+                sync_unambiguous_entries(
+                    &cfg.destination,
+                    new_partition
+                        .unambiguous_entries
+                        .into_values()
+                        .collect_vec(),
+                )
+                .await?;
+
+                ambiguous.extend(new_partition.ambiguous_entries);
+                partition.unprocessed_entries = new_partition.unprocessed_entries;
+                if partition.unprocessed_entries.is_empty() {
+                    break;
+                }
+            }
+            partition.ambiguous_entries = ambiguous;
         }
 
         bail!(

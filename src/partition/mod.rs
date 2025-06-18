@@ -32,6 +32,11 @@ impl Partition {
         }
     }
 }
+pub enum PartitionResponse {
+    Unambiguous(PathInsideZip, ZipEntry),
+    Ambiguous(PathInsideZip, Vec<ZipEntry>),
+    Unprocessed(PathInsideZip, Vec<ZipEntry>),
+}
 
 pub trait PartitionStrategy {
     type Input: KnownCount + KnownSize;
@@ -48,9 +53,10 @@ pub trait PartitionStrategy {
         );
         let rtn = self.partition_inner(entries).await?;
         info!(
-            "Partitioned {} entries in {} --> {} unambiguous, {} ambiguous by {}",
+            "Partitioned {} entries in {} --> {} unprocessed, {} unambiguous, {} ambiguous by {}",
             len,
             humantime::format_duration(start.elapsed()),
+            rtn.unprocessed_entries.len(),
             rtn.unambiguous_entries.len(),
             rtn.ambiguous_entries.len(),
             Self::label()
