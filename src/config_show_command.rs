@@ -1,7 +1,7 @@
+use crate::command::GlobalArgs;
+use crate::config_state::AppConfig;
 use eye_config::persistable_state::PersistableState;
 use eyre::Context;
-
-use crate::{command::GlobalArgs, config_state::AppConfig};
 
 pub struct ConfigShowCommand;
 impl ConfigShowCommand {

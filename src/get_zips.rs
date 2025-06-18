@@ -1,6 +1,7 @@
-use std::{path::PathBuf, sync::Arc};
-
-use crate::{config_state::AppConfig, PathToZip};
+use crate::PathToZip;
+use crate::config_state::AppConfig;
+use std::path::PathBuf;
+use std::sync::Arc;
 
 pub async fn get_zips(cfg: &AppConfig) -> Result<Vec<PathToZip>, eyre::Error> {
     let mut zips = Vec::new();
@@ -17,7 +18,9 @@ pub async fn get_zips(cfg: &AppConfig) -> Result<Vec<PathToZip>, eyre::Error> {
                 .and_then(|s| s.to_str())
                 .map_or(false, |ext| ext.eq_ignore_ascii_case("zip"))
             {
-                zips.push(PathToZip { inner: Arc::new(path) });
+                zips.push(PathToZip {
+                    inner: Arc::new(path),
+                });
             }
         }
     }

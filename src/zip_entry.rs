@@ -2,6 +2,7 @@ use crate::PathInsideZip;
 use crate::PathToZip;
 use crate::get_splat_path::DisambiguationStrategy;
 use crate::get_splat_path::get_splat_path;
+use crate::size_of_thing::KnownSize;
 use eyre::Context;
 use positioned_io::RandomAccessFile;
 use rc_zip::parse::Entry;
@@ -58,5 +59,14 @@ impl ZipEntry {
             .await
             .wrap_err_with(|| eyre::eyre!("Failed to write to {}", dest.display()))?;
         Ok(())
+    }
+}
+impl KnownSize for &ZipEntry {
+    fn size_in_bytes(self) -> usize {
+        self.path_to_zip.size_in_bytes()
+            + self.path_inside_zip.size_in_bytes()
+            + self.file.size_in_bytes()
+            + self.entry.size_in_bytes()
+            + std::mem::size_of::<Self>()
     }
 }

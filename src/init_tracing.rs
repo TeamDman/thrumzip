@@ -7,6 +7,7 @@ pub fn init_tracing(level: Level) {
     let builder = tracing_subscriber::fmt().with_max_level(level);
     #[cfg(debug_assertions)]
     let subscriber = builder
+        .with_target(false)
         .with_file(true)
         .with_line_number(true)
         .with_timer(tracing_subscriber::fmt::time::uptime())

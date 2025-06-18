@@ -2,12 +2,10 @@ use crate::command::GlobalArgs;
 use crate::config_state::AppConfig;
 use crate::count_files::count_files;
 use crate::get_zips;
-use crate::partition::Partition;
 use crate::partition::PartitionStrategy;
 use crate::partition_strategy_unique_crc32::UniqueCrc32HashPartitionStrategy;
 use crate::partition_strategy_unique_name::UniqueNamePartitionStrategy;
 use crate::read_entries_from_zips;
-use crate::sync_ambiguous_entries::sync_ambiguous_entries;
 use crate::sync_unambiguous_entries::sync_unambiguous_entries;
 use clap::Args;
 use color_eyre::eyre::Result;
@@ -75,7 +73,7 @@ impl SyncCommand {
         // Partition ambiguous entries by CRC32 hash uniqueness
         let partition = UniqueCrc32HashPartitionStrategy::partition(partition.ambiguous_entries);
         info!(
-            "Partitioned ambiguous entries; {} unambiguous, {} ambiguous by CRC32",
+            "Partitioned ambiguous entries by CRC32; {} unambiguous, {} ambiguous",
             partition.unambiguous_entries.len(),
             partition.ambiguous_entries.len()
         );

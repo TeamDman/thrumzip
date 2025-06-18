@@ -1,8 +1,3 @@
-use std::collections::HashMap;
-use std::path::Path;
-use std::path::PathBuf;
-use std::sync::Arc;
-
 use eyre::OptionExt;
 use eyre::Result;
 use eyre::eyre;
@@ -13,6 +8,10 @@ use img_hash::HasherConfig;
 use img_hash::ImageHash;
 use positioned_io::RandomAccessFile;
 use rc_zip_tokio::ReadZip;
+use std::collections::HashMap;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::error;
 use tracing::info;

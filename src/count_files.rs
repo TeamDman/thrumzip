@@ -1,4 +1,5 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 
 pub async fn try_count_files(dir: &Path) -> eyre::Result<usize> {
     let mut count = 0;

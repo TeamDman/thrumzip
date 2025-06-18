@@ -1,7 +1,6 @@
-use std::time::Duration;
-
 use humansize::DECIMAL;
 use humansize::format_size;
+use std::time::Duration;
 use uom::fmt::DisplayStyle::Abbreviation;
 use uom::si::f32::InformationRate;
 use uom::si::f32::*;

@@ -1,6 +1,9 @@
+#![allow(dead_code)]
+use img_hash::HashAlg;
+use img_hash::Hasher;
+use img_hash::HasherConfig;
+use img_hash::ImageHash;
 use std::sync::Arc;
-
-use img_hash::{HashAlg, Hasher, HasherConfig, ImageHash};
 
 pub enum ComparableImage {
     Bytes {

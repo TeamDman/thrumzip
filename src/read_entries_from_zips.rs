@@ -1,6 +1,6 @@
-use crate::zip_entry::ZipEntry;
 use crate::PathInsideZip;
 use crate::PathToZip;
+use crate::zip_entry::ZipEntry;
 use eyre::bail;
 use positioned_io::RandomAccessFile;
 use rc_zip_tokio::ReadZip;

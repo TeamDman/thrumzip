@@ -62,7 +62,8 @@ mod tests {
         let path_inside_zip = create_path_inside_zip("d/e/f.txt");
         let dest_dir = Path::new("/dest");
 
-        let result = get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::None).unwrap();
+        let result =
+            get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::None).unwrap();
 
         assert_eq!(result, PathBuf::from("/dest/d/e/f.txt"));
     }
@@ -73,7 +74,12 @@ mod tests {
         let path_to_zip = create_path_to_zip("/a/b/c.zip");
         let dest_dir = Path::new("/dest");
 
-        let result = get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::Some { path_to_zip }).unwrap();
+        let result = get_splat_path(
+            &path_inside_zip,
+            dest_dir,
+            DisambiguationStrategy::Some { path_to_zip },
+        )
+        .unwrap();
 
         assert_eq!(result, PathBuf::from("/dest/d/e/c.zip/f.txt"));
     }
@@ -84,10 +90,16 @@ mod tests {
         let path_to_zip = create_path_to_zip("/a/b/c.zip");
         let dest_dir = Path::new("/dest");
 
-        let result = get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::None).unwrap();
+        let result =
+            get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::None).unwrap();
         assert_eq!(result, PathBuf::from("/dest/f.txt"));
 
-        let result = get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::Some { path_to_zip }).unwrap();
+        let result = get_splat_path(
+            &path_inside_zip,
+            dest_dir,
+            DisambiguationStrategy::Some { path_to_zip },
+        )
+        .unwrap();
         assert_eq!(result, PathBuf::from("/dest/c.zip/f.txt"));
     }
 
@@ -97,10 +109,16 @@ mod tests {
         let path_to_zip = create_path_to_zip("/source/backup.zip");
         let dest_dir = Path::new("/destination");
 
-        let result = get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::None).unwrap();
+        let result =
+            get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::None).unwrap();
         assert_eq!(result, PathBuf::from("/destination/a/b/c/d/e/f/g.txt"));
 
-        let result = get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::Some { path_to_zip }).unwrap();
+        let result = get_splat_path(
+            &path_inside_zip,
+            dest_dir,
+            DisambiguationStrategy::Some { path_to_zip },
+        )
+        .unwrap();
         assert_eq!(
             result,
             PathBuf::from("/destination/a/b/c/d/e/f/backup.zip/g.txt")
@@ -122,7 +140,8 @@ mod tests {
         let path_to_zip = create_path_to_zip("C:\\backups\\photos.zip");
         let dest_dir = Path::new("C:\\extracted");
 
-        let result = get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::None).unwrap();
+        let result =
+            get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::None).unwrap();
         // Note: PathBuf normalizes path separators based on the OS
         let expected = if cfg!(windows) {
             PathBuf::from("C:\\extracted\\documents\\images\\photo.jpg")
@@ -131,7 +150,12 @@ mod tests {
         };
         assert_eq!(result, expected);
 
-        let result = get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::Some { path_to_zip }).unwrap();
+        let result = get_splat_path(
+            &path_inside_zip,
+            dest_dir,
+            DisambiguationStrategy::Some { path_to_zip },
+        )
+        .unwrap();
         let expected = if cfg!(windows) {
             PathBuf::from("C:\\extracted\\documents\\images\\photos.zip\\photo.jpg")
         } else {
@@ -146,7 +170,12 @@ mod tests {
         let path_to_zip = create_path_to_zip("/archives/backup");
         let dest_dir = Path::new("/output");
 
-        let result = get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::Some { path_to_zip }).unwrap();
+        let result = get_splat_path(
+            &path_inside_zip,
+            dest_dir,
+            DisambiguationStrategy::Some { path_to_zip },
+        )
+        .unwrap();
         assert_eq!(result, PathBuf::from("/output/data/backup/file.txt"));
     }
 
@@ -156,13 +185,19 @@ mod tests {
         let path_to_zip = create_path_to_zip("/path/archive with spaces.zip");
         let dest_dir = Path::new("/dest");
 
-        let result = get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::None).unwrap();
+        let result =
+            get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::None).unwrap();
         assert_eq!(
             result,
             PathBuf::from("/dest/folder with spaces/file-name_test.txt")
         );
 
-        let result = get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::Some { path_to_zip }).unwrap();
+        let result = get_splat_path(
+            &path_inside_zip,
+            dest_dir,
+            DisambiguationStrategy::Some { path_to_zip },
+        )
+        .unwrap();
         assert_eq!(
             result,
             PathBuf::from("/dest/folder with spaces/archive with spaces.zip/file-name_test.txt")
@@ -175,7 +210,12 @@ mod tests {
         let path_to_zip = create_path_to_zip("/archives/data.zip");
         let dest_dir = Path::new("/target");
 
-        let result = get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::Some { path_to_zip }).unwrap();
+        let result = get_splat_path(
+            &path_inside_zip,
+            dest_dir,
+            DisambiguationStrategy::Some { path_to_zip },
+        )
+        .unwrap();
         // When there's no parent directory, the zip file name should be used as the parent
         assert_eq!(result, PathBuf::from("/target/data.zip/file.txt"));
     }
@@ -186,7 +226,12 @@ mod tests {
         let path_to_zip = create_path_to_zip("simple.zip");
         let dest_dir = Path::new("/extract");
 
-        let result = get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::Some { path_to_zip }).unwrap();
+        let result = get_splat_path(
+            &path_inside_zip,
+            dest_dir,
+            DisambiguationStrategy::Some { path_to_zip },
+        )
+        .unwrap();
         assert_eq!(
             result,
             PathBuf::from("/extract/subfolder/simple.zip/document.pdf")
@@ -199,10 +244,16 @@ mod tests {
         let path_to_zip = create_path_to_zip("/アーカイブ/データ.zip");
         let dest_dir = Path::new("/出力");
 
-        let result = get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::None).unwrap();
+        let result =
+            get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::None).unwrap();
         assert_eq!(result, PathBuf::from("/出力/フォルダ/ファイル.txt"));
 
-        let result = get_splat_path(&path_inside_zip, dest_dir, DisambiguationStrategy::Some { path_to_zip }).unwrap();
+        let result = get_splat_path(
+            &path_inside_zip,
+            dest_dir,
+            DisambiguationStrategy::Some { path_to_zip },
+        )
+        .unwrap();
         assert_eq!(
             result,
             PathBuf::from("/出力/フォルダ/データ.zip/ファイル.txt")

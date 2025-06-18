@@ -1,10 +1,9 @@
-use std::path::PathBuf;
-
 use async_trait::async_trait;
 use eye_config::persistable_state::PersistableState;
 use eye_config::persistence_key::PersistenceKey;
 use serde::Deserialize;
 use serde::Serialize;
+use std::path::PathBuf;
 
 /// Application configuration persisted on disk
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
