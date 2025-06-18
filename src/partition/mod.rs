@@ -1,6 +1,4 @@
-pub mod partition_strategy_unique_crc32;
 pub mod partition_strategy_unique_image_hash;
-pub mod partition_strategy_unique_name;
 
 use crate::PathInsideZip;
 use crate::size_of_thing::KnownCount;

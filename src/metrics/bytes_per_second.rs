@@ -22,9 +22,6 @@ impl Metric for BytesPerSecondMetric {
         let elapsed = Time::new::<second>(progress.start_time.elapsed().as_secs_f64().max(0.001));
         // Compute rate
         let rate: InformationRate = (total_bytes / elapsed).into();
-        Ok(format!(
-            "{}/s",
-            rate.human_size()
-        ))
+        Ok(format!("{}/s", rate.human_size()))
     }
 }

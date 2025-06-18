@@ -1,7 +1,7 @@
-use crate::size_of_thing::KnownCount;
 use crate::PathInsideZip;
 use crate::PathToZip;
 use crate::get_splat_path::get_splat_path;
+use crate::size_of_thing::KnownCount;
 use crate::size_of_thing::KnownSize;
 use eyre::Context;
 use positioned_io::RandomAccessFile;

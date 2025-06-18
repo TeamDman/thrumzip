@@ -1,7 +1,8 @@
 use crate::metrics::Metric;
 use crate::progress::Progress;
 use eyre::Result;
-use humansize::{format_size, DECIMAL};
+use humansize::DECIMAL;
+use humansize::format_size;
 use uom::si::f64::Information;
 use uom::si::information::byte;
 

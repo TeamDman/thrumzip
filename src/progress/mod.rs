@@ -46,11 +46,7 @@ impl Progress {
         self.start_time = Instant::now();
         self.history.clear();
     }
-    pub fn track(
-        &mut self,
-        processed_items: usize,
-        processed_bytes: Information,
-    ) {
+    pub fn track(&mut self, processed_items: usize, processed_bytes: Information) {
         self.history.push(ProgressHistoryEntry {
             processed_bytes,
             processed_items,

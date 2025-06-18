@@ -149,7 +149,7 @@ impl<T: KnownCount> KnownCount for Vec<T> {
 }
 impl<K: KnownCount, V: KnownCount> KnownCount for std::collections::HashMap<K, V> {
     fn count(&self) -> usize {
-        self.iter().map(|(k, v)| k.count() + v.count()).sum()
+        self.values().map(|v| v.count()).sum()
     }
 }
 impl<A: KnownCount, B: KnownCount, C: KnownCount> KnownCount for (A, B, C) {

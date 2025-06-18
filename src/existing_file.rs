@@ -1,6 +1,6 @@
+use crate::PathInsideZip;
 use crate::size_of_thing::KnownCount;
 use crate::size_of_thing::KnownSize;
-use crate::PathInsideZip;
 use std::path::PathBuf;
 use uom::si::f64::Information;
 use uom::si::information::byte;

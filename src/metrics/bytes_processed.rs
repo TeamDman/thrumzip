@@ -1,7 +1,8 @@
 use crate::metrics::Metric;
 use crate::progress::Progress;
 use eyre::Result;
-use humansize::{format_size, DECIMAL};
+use humansize::DECIMAL;
+use humansize::format_size;
 use uom::si::f64::Information;
 use uom::si::information::byte;
 
@@ -14,11 +15,7 @@ impl Metric for BytesProcessedMetric {
     }
 
     fn value(&self, progress: &Progress) -> Result<String> {
-        let processed: Information = progress
-            .history
-            .iter()
-            .map(|e| e.processed_bytes)
-            .sum();
+        let processed: Information = progress.history.iter().map(|e| e.processed_bytes).sum();
         let bytes: u64 = processed.get::<byte>() as u64;
         Ok(format_size(bytes, DECIMAL))
     }
