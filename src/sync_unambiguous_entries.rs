@@ -26,7 +26,9 @@ pub async fn sync_unambiguous_entries(
     let mut progress = {
         Progress::new(
             entries.len(),
-            Information::new::<byte>(entries.iter().map(|e| e.size_in_bytes()).sum::<usize>() as f64),
+            Information::new::<byte>(
+                entries.iter().map(|e| e.size_in_bytes()).sum::<usize>() as f64
+            ),
         )
     };
     // let progress_interval = Duration::ZERO;
@@ -43,14 +45,15 @@ pub async fn sync_unambiguous_entries(
         size: Information,
     }
     for entry in entries {
-        let dest = entry.get_splat_path(&destination, false)?;
         let throughput = throughput.clone();
         let processed_bytes = entry.size_of();
+        let destination = destination.to_path_buf();
         join_set.spawn(async move {
             let _permit = match throughput.as_ref() {
                 Some(sem) => Some(sem.acquire().await),
                 None => None,
             };
+            let dest = entry.get_splat_path(&destination, false)?;
             let (skipped, written) = if dest.exists() {
                 (1, 0)
             } else {
@@ -67,7 +70,13 @@ pub async fn sync_unambiguous_entries(
         // Track and log progress
         progress.track(1, 0, processed_bytes);
         if Instant::now().duration_since(last_progress) >= progress_interval {
+            let x1 = Instant::now();
             info!("Spawning write tasks {progress}");
+            let elapsed = x1.elapsed();
+            info!(
+                "Took {} to display progress",
+                humantime::format_duration(elapsed)
+            );
             last_progress = Instant::now();
         }
     }

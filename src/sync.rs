@@ -25,13 +25,13 @@ impl SyncCommand {
             .await
             .wrap_err("Failed to load configuration")?;
 
-        // Count existing destination files
-        info!("Crawling destination path: {}", cfg.destination.display());
-        let dest_count = count_files(&cfg.destination).await;
-        info!(
-            "Found {} existing files in the destination path",
-            dest_count
-        );
+        // // Count existing destination files
+        // info!("Crawling destination path: {}", cfg.destination.display());
+        // let dest_count = count_files(&cfg.destination).await;
+        // info!(
+        //     "Found {} existing files in the destination path",
+        //     dest_count
+        // );
 
         // Gather zip files from sources
         let zips = get_zips::get_zips(&cfg).await?;

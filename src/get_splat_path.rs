@@ -19,12 +19,10 @@ pub fn get_splat_path(
     dest_dir: &Path,
     disambiguate: DisambiguationStrategy,
 ) -> eyre::Result<PathBuf> {
-    let file_name = <PathInsideZip as AsRef<std::path::Path>>::as_ref(path_inside_zip)
-        .file_name()
-        .ok_or_eyre(eyre::eyre!(
-            "Entry {} in zip has no file name, cannot process it.",
-            path_inside_zip.display(),
-        ))?;
+    let file_name = path_inside_zip.file_name().ok_or_eyre(eyre::eyre!(
+        "Entry {} in zip has no file name, cannot process it.",
+        path_inside_zip.display(),
+    ))?;
     let splatted = match disambiguate {
         DisambiguationStrategy::None => path_inside_zip.to_path_buf(),
         DisambiguationStrategy::Some { path_to_zip } => match path_inside_zip.parent() {
