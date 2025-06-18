@@ -1,4 +1,5 @@
 use crate::progress::worker::track_progress;
+use crate::size_of_thing::KnownSize;
 use crate::zip_entry::ZipEntry;
 use color_eyre::eyre::Result;
 use std::path::Path;
@@ -11,8 +12,9 @@ pub async fn sync_unambiguous_entries(
     entries: Vec<ZipEntry>,
 ) -> Result<(), eyre::Error> {
     info!(
-        "Beginning sync of {} entries to {}",
+        "Beginning sync of {} entries ({}) to {}",
         entries.len(),
+        entries.human_size(),
         destination.display()
     );
     track_progress(
@@ -25,9 +27,8 @@ pub async fn sync_unambiguous_entries(
             .collect::<eyre::Result<Vec<_>>>()?,
         Duration::from_millis(500),
         |progress| info!("Spawning write tasks {progress}"),
-        |progress| info!("Waiting for write tasks to complete... {progress}"),
         |progress| info!("Completing write tasks {progress}"),
-        |progress| info!("Sync complete! ({progress})"),
+        |_progress, elapsed| info!("Sync complete in {elapsed}!"),
         |(destination, item): (PathBuf, ZipEntry)| async move {
             if !destination.exists() {
                 item.write_to_file(&destination).await?;

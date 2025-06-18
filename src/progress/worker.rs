@@ -1,5 +1,6 @@
 use super::Progress;
 use crate::size_of_thing::KnownSize;
+use humantime::FormattedDuration;
 use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
@@ -12,9 +13,8 @@ pub async fn track_progress<T, R, F, Fut>(
     items: impl IntoIterator<Item = T>,
     progress_display_interval: Duration,
     progress_task_queued_display_fn: impl Fn(&Progress) + Send + 'static,
-    progress_task_collecting_display_fn: impl Fn(&Progress) + Send + 'static,
     progress_task_received_display_fn: impl Fn(&Progress) + Send + 'static,
-    progress_complete_display_fn: impl Fn(&Progress) + Send + 'static,
+    progress_complete_display_fn: impl Fn(&Progress, FormattedDuration) + Send + 'static,
     mapping_fn: F,
     rate_limit: usize,
 ) -> eyre::Result<Vec<R>>
@@ -24,6 +24,7 @@ where
     F: Fn(T) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = eyre::Result<R>> + Send + 'static,
 {
+    let start = Instant::now();
     let items = items.into_iter().collect::<Vec<_>>();
     let mut progress = Progress::new(&items);
     let mut last_progress = Instant::now();
@@ -64,7 +65,6 @@ where
 
     // Complete work
     progress.reset();
-    progress_task_collecting_display_fn(&progress);
     let mut rtn = Vec::new();
     while let Some(res) = join_set.join_next().await {
         let res = res??;
@@ -76,7 +76,9 @@ where
         }
     }
 
-    progress_complete_display_fn(&progress);
+    let elapsed =
+        humantime::format_duration(Duration::from_millis(start.elapsed().as_millis() as u64));
+    progress_complete_display_fn(&progress, elapsed);
 
     Ok(rtn)
 }

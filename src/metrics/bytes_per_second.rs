@@ -1,12 +1,10 @@
 use crate::metrics::Metric;
 use crate::progress::Progress;
+use crate::size_of_thing::KnownSize;
 use eyre::Result;
-use humansize::DECIMAL;
-use humansize::format_size_i;
 use uom::si::f64::Information;
 use uom::si::f64::InformationRate;
 use uom::si::f64::Time;
-use uom::si::information_rate::byte_per_second;
 use uom::si::time::second;
 
 /// Metric for bytes processed per second
@@ -26,7 +24,7 @@ impl Metric for BytesPerSecondMetric {
         let rate: InformationRate = (total_bytes / elapsed).into();
         Ok(format!(
             "{}/s",
-            format_size_i(rate.get::<byte_per_second>(), DECIMAL)
+            rate.human_size()
         ))
     }
 }

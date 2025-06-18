@@ -10,8 +10,13 @@ use std::collections::HashMap;
 /// If all entries with the same name have the same CRC32 hash, it is not guaranteed what entry will be selected as the unambiguous entry, with the rest being omitted from the resulting partition.
 pub struct UniqueCrc32HashPartitionStrategy;
 impl PartitionStrategy for UniqueCrc32HashPartitionStrategy {
+    
     type Input = HashMap<PathInsideZip, Vec<ZipEntry>>;
-    fn partition(entries: Self::Input) -> Partition {
+    fn label() -> &'static str {
+        "CRC32 uniqueness"
+    }
+
+    async fn partition_inner(&self, entries: Self::Input) -> eyre::Result<Partition> {
         let mut rtn = Partition::new_empty();
         for (name, group) in entries {
             let same_crc = group
@@ -24,6 +29,6 @@ impl PartitionStrategy for UniqueCrc32HashPartitionStrategy {
                 rtn.ambiguous_entries.insert(name, group);
             }
         }
-        rtn
+        Ok(rtn)
     }
 }

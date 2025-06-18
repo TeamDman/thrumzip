@@ -1,3 +1,4 @@
+#![allow(async_fn_in_trait)]
 pub mod command;
 mod comparable_image;
 pub mod config_command;
@@ -11,8 +12,6 @@ pub mod init_tracing;
 pub mod is_image;
 pub mod metrics;
 pub mod partition;
-pub mod partition_strategy_unique_crc32;
-mod partition_strategy_unique_name;
 pub mod progress;
 pub mod read_entries_from_zips;
 pub mod size_of_thing;
@@ -23,6 +22,7 @@ use clap::Parser;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::WrapErr;
 use holda::Holda;
+use size_of_thing::KnownCount;
 use size_of_thing::KnownSize;
 use std::path::Path;
 use std::path::PathBuf;
@@ -44,6 +44,11 @@ impl KnownSize for PathToZip {
         self.inner.size_in_bytes()
     }
 }
+impl KnownCount for PathToZip {
+    fn count(&self) -> usize {
+        1
+    }
+}
 
 #[derive(Holda)]
 #[holda(NoDisplay)]
@@ -58,6 +63,11 @@ impl AsRef<Path> for PathInsideZip {
 impl KnownSize for PathInsideZip {
     fn size_in_bytes(&self) -> usize {
         self.inner.size_in_bytes()
+    }
+}
+impl KnownCount for PathInsideZip {
+    fn count(&self) -> usize {
+        1
     }
 }
 

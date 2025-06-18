@@ -1,10 +1,8 @@
 use crate::metrics::Metric;
 use crate::progress::Progress;
+use crate::size_of_thing::KnownSize;
 use eyre::Result;
-use humansize::DECIMAL;
-use humansize::format_size;
 use uom::si::f64::Information;
-use uom::si::information::byte;
 
 /// Metric for bytes remaining
 pub struct BytesRemainingMetric;
@@ -20,7 +18,6 @@ impl Metric for BytesRemainingMetric {
         // Remaining bytes
         let remaining: Information = progress.total_bytes - processed;
         // Format size in human-readable form
-        let bytes: u64 = remaining.get::<byte>() as u64;
-        Ok(format_size(bytes, DECIMAL))
+        Ok(remaining.human_size())
     }
 }

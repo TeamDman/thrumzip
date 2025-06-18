@@ -26,8 +26,6 @@ use std::time::Instant;
 use tokio::task::JoinSet;
 use tracing::info;
 use tracing::warn;
-use uom::si::f64::Information;
-use uom::si::information::byte;
 
 #[derive(Holda)]
 #[holda(NoDisplay)]

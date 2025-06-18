@@ -6,8 +6,12 @@ use itertools::Itertools;
 pub struct UniqueNamePartitionStrategy;
 impl PartitionStrategy for UniqueNamePartitionStrategy {
     type Input = Vec<ZipEntry>;
-
-    fn partition(entries: Self::Input) -> Partition {
+    
+    fn label() -> &'static str {
+        "name uniqueness"
+    }
+    
+    async fn partition_inner(&self, entries: Self::Input) -> eyre::Result<Partition> {
         let entries_by_name = entries
             .into_iter()
             .into_group_map_by(|entry| entry.path_inside_zip.clone());
@@ -20,6 +24,6 @@ impl PartitionStrategy for UniqueNamePartitionStrategy {
                 rtn.ambiguous_entries.insert(path, group);
             }
         }
-        rtn
+        Ok(rtn)
     }
 }

@@ -7,8 +7,11 @@ use rc_zip::parse::Entry;
 use std::path::PathBuf;
 use std::sync::Arc;
 use uom::si::f64::Information;
+use uom::si::f64::InformationRate;
 use uom::si::information::byte;
+use uom::si::information_rate::byte_per_second;
 
+/// Convenience trait for displaying the size of things.
 pub trait KnownSize: Sized {
     /// Returns the size of the type in bytes.
     fn size_in_bytes(&self) -> usize {
@@ -16,6 +19,45 @@ pub trait KnownSize: Sized {
     }
     fn size_of(&self) -> Information {
         Information::new::<byte>(self.size_in_bytes() as f64)
+    }
+    fn human_size(&self) -> String {
+        humansize::format_size_i(self.size_in_bytes() as u64, humansize::DECIMAL)
+    }
+}
+
+impl KnownSize for Information {
+    fn size_in_bytes(&self) -> usize {
+        self.get::<byte>() as usize
+    }
+    fn size_of(&self) -> Information {
+        *self
+    }
+}
+
+/// This is mainly for the human_size helper, treating the size of the rate as the size of one second of data.
+impl KnownSize for InformationRate {
+    fn size_in_bytes(&self) -> usize {
+        self.get::<byte_per_second>() as usize
+    }
+}
+
+impl<T> KnownSize for Vec<T>
+where
+    T: KnownSize,
+{
+    fn size_in_bytes(&self) -> usize {
+        std::mem::size_of::<Self>() + self.iter().map(|item| item.size_in_bytes()).sum::<usize>()
+    }
+}
+impl<K, V> KnownSize for std::collections::HashMap<K, V>
+where
+    K: KnownSize,
+    V: KnownSize,
+{
+    fn size_in_bytes(&self) -> usize {
+        std::mem::size_of::<Self>()
+            + self.keys().map(|k| k.size_in_bytes()).sum::<usize>()
+            + self.values().map(|v| v.size_in_bytes()).sum::<usize>()
     }
 }
 
@@ -61,5 +103,20 @@ where
 {
     fn size_in_bytes(&self) -> usize {
         self.0.size_in_bytes() + self.1.size_in_bytes()
+    }
+}
+
+pub trait KnownCount: Sized {
+    /// Returns the length of the type.
+    fn count(&self) -> usize;
+}
+impl<T: KnownCount> KnownCount for Vec<T> {
+    fn count(&self) -> usize {
+        self.iter().map(|item| item.count()).sum()
+    }
+}
+impl<K: KnownCount, V: KnownCount> KnownCount for std::collections::HashMap<K, V> {
+    fn count(&self) -> usize {
+        self.iter().map(|(k, v)| k.count() + v.count()).sum()
     }
 }

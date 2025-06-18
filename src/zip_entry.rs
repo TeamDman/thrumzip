@@ -1,3 +1,4 @@
+use crate::size_of_thing::KnownCount;
 use crate::PathInsideZip;
 use crate::PathToZip;
 use crate::get_splat_path::get_splat_path;
@@ -64,5 +65,10 @@ impl KnownSize for ZipEntry {
             + self.file.size_in_bytes()
             + self.entry.size_in_bytes()
             + std::mem::size_of::<Self>()
+    }
+}
+impl KnownCount for ZipEntry {
+    fn count(&self) -> usize {
+        1
     }
 }

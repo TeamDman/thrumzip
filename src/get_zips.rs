@@ -2,9 +2,12 @@ use crate::PathToZip;
 use crate::config_state::AppConfig;
 use std::path::PathBuf;
 use std::sync::Arc;
+use uom::si::f64::Information;
+use uom::si::information::byte;
 
-pub async fn get_zips(cfg: &AppConfig) -> Result<Vec<PathToZip>, eyre::Error> {
+pub async fn get_zips(cfg: &AppConfig) -> Result<(Vec<PathToZip>, Information), eyre::Error> {
     let mut zips = Vec::new();
+    let mut total_size: Information = Information::new::<byte>(0.0);
     for src in &cfg.sources {
         let dir = PathBuf::from(src);
         if !dir.is_dir() {
@@ -18,11 +21,13 @@ pub async fn get_zips(cfg: &AppConfig) -> Result<Vec<PathToZip>, eyre::Error> {
                 .and_then(|s| s.to_str())
                 .map_or(false, |ext| ext.eq_ignore_ascii_case("zip"))
             {
+                let meta = tokio::fs::metadata(&path).await?;
+                total_size += Information::new::<byte>(meta.len() as f64);
                 zips.push(PathToZip {
                     inner: Arc::new(path),
                 });
             }
         }
     }
-    Ok(zips)
+    Ok((zips, total_size))
 }
