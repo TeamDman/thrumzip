@@ -57,8 +57,8 @@ impl ZipEntry {
         Ok(())
     }
 }
-impl KnownSize for &ZipEntry {
-    fn size_in_bytes(self) -> usize {
+impl KnownSize for ZipEntry {
+    fn size_in_bytes(&self) -> usize {
         self.path_to_zip.size_in_bytes()
             + self.path_inside_zip.size_in_bytes()
             + self.file.size_in_bytes()

@@ -39,8 +39,8 @@ impl AsRef<Path> for PathToZip {
         self.inner.as_ref()
     }
 }
-impl KnownSize for &PathToZip {
-    fn size_in_bytes(self) -> usize {
+impl KnownSize for PathToZip {
+    fn size_in_bytes(&self) -> usize {
         self.inner.size_in_bytes()
     }
 }
@@ -55,8 +55,8 @@ impl AsRef<Path> for PathInsideZip {
         self.inner.as_ref()
     }
 }
-impl KnownSize for &PathInsideZip {
-    fn size_in_bytes(self) -> usize {
+impl KnownSize for PathInsideZip {
+    fn size_in_bytes(&self) -> usize {
         self.inner.size_in_bytes()
     }
 }

@@ -1,6 +1,5 @@
 use crate::command::GlobalArgs;
 use crate::config_state::AppConfig;
-use crate::count_files::count_files;
 use crate::get_zips;
 use crate::partition::PartitionStrategy;
 use crate::partition_strategy_unique_crc32::UniqueCrc32HashPartitionStrategy;
@@ -25,14 +24,6 @@ impl SyncCommand {
             .await
             .wrap_err("Failed to load configuration")?;
 
-        // // Count existing destination files
-        // info!("Crawling destination path: {}", cfg.destination.display());
-        // let dest_count = count_files(&cfg.destination).await;
-        // info!(
-        //     "Found {} existing files in the destination path",
-        //     dest_count
-        // );
-
         // Gather zip files from sources
         let zips = get_zips::get_zips(&cfg).await?;
         info!("Found {} zip files in the source paths", zips.len());
@@ -42,6 +33,7 @@ impl SyncCommand {
         info!("Found {} entries in the source zips", entries.len());
 
         // Partition entries by unique names
+        info!("Partitioning {} entries by name uniqueness", entries.len());
         let partition = UniqueNamePartitionStrategy::partition(entries);
         info!(
             "Partitioned entries; {} unambiguous, {} ambiguous by name",
@@ -71,6 +63,11 @@ impl SyncCommand {
         }
 
         // Partition ambiguous entries by CRC32 hash uniqueness
+        info!(
+            "Partitioning remaining {} entries by CRC32 hash uniqueness",
+            partition.ambiguous_entries.len()
+        );
+        // This will further partition ambiguous entries into unambiguous and still ambiguous
         let partition = UniqueCrc32HashPartitionStrategy::partition(partition.ambiguous_entries);
         info!(
             "Partitioned ambiguous entries by CRC32; {} unambiguous, {} ambiguous",
