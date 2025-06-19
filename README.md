@@ -1,4 +1,8 @@
-# Meta Takeout
+# Thrumzip
+
+<p align="center">
+  <img src="logo.png" alt="Thrumzip Logo" width="500"/>
+</p>
 
 You can export your data from Meta, giving you a bunch of zip files to work with.
 
