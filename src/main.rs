@@ -1,8 +1,5 @@
 #![allow(async_fn_in_trait)]
 pub mod command;
-pub mod config_command;
-pub mod config_init_command;
-pub mod config_show_command;
 pub mod config_state;
 pub mod existing_file;
 pub mod gather_existing_files;
@@ -15,11 +12,12 @@ pub mod path_to_zip;
 pub mod progress;
 pub mod read_entries_from_zips;
 pub mod size_of_thing;
-pub mod sync;
 pub mod zip_entry;
-use clap::Parser;
+use clap::CommandFactory;
+use clap::FromArgMatches;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::WrapErr;
+use command::Command;
 use tracing::Level;
 
 #[tokio::main]
@@ -27,7 +25,9 @@ async fn main() -> Result<()> {
     // Install colored error reporting
     color_eyre::install().wrap_err("Failed to install color_eyre")?;
     // Parse CLI arguments
-    let cmd = command::Command::parse();
+    let cmd = Command::command();
+    let cmd = Command::from_arg_matches(&cmd.get_matches())?;
+
     // Initialize tracing based on debug flag
     let level = if cmd.global_args.debug {
         Level::DEBUG

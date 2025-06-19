@@ -1,9 +1,10 @@
 use crate::command::GlobalArgs;
-use crate::config_init_command::ConfigInitCommand;
-use crate::config_show_command::ConfigShowCommand;
 use clap::Args;
 use clap::Subcommand;
 use color_eyre::eyre::Result;
+
+use super::config_init_command::ConfigInitCommand;
+use super::config_show_command::ConfigShowCommand;
 
 #[derive(Args)]
 pub struct ConfigCommand {

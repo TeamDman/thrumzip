@@ -1,9 +1,10 @@
-use crate::config_command::ConfigCommand;
-use crate::sync::SyncCommand;
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 use eyre::Result;
+
+use super::config_command::ConfigCommand;
+use super::sync::SyncCommand;
 
 #[derive(Parser)]
 #[clap(name = "meta-takeout", version)]

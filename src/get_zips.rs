@@ -1,15 +1,16 @@
-use crate::config_state::AppConfig;
 use crate::path_to_zip::PathToZip;
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::Arc;
 use uom::si::f64::Information;
 use uom::si::information::byte;
 
-pub async fn get_zips(cfg: &AppConfig) -> Result<(Vec<PathToZip>, Information), eyre::Error> {
+pub async fn get_zips<T: AsRef<Path>>(
+    sources: impl IntoIterator<Item = T>,
+) -> Result<(Vec<PathToZip>, Information), eyre::Error> {
     let mut zips = Vec::new();
     let mut total_size: Information = Information::new::<byte>(0.0);
-    for src in &cfg.sources {
-        let dir = PathBuf::from(src);
+    for src in sources {
+        let dir = src.as_ref().to_path_buf();
         if !dir.is_dir() {
             continue;
         }

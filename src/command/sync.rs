@@ -33,12 +33,20 @@ impl SyncCommand {
         let cfg = AppConfig::load()
             .await
             .wrap_err("Failed to load configuration")?;
+        let Some(profile_name) = cfg.active_profile else {
+            return Err(eyre::eyre!(
+                "No active profile set in configuration! run `config --help`"
+            ));
+        };
+        let Some(app_profile) = cfg.profiles.into_iter().find(|p| p.name == profile_name) else {
+            return Err(eyre::eyre!("No profile found with name `{}`", profile_name));
+        };
 
         info!(
             "Gathering files from destination: {}",
-            cfg.destination.display()
+            app_profile.destination.display()
         );
-        let existing_destination_files = gather_existing_files(&cfg.destination)
+        let existing_destination_files = gather_existing_files(&app_profile.destination)
             .await?
             .into_iter()
             .into_group_map_by(|entry| entry.path_inside_zip().to_owned());
@@ -51,7 +59,7 @@ impl SyncCommand {
         );
 
         info!("Gathering zip files from sources...");
-        let (zips, zips_size) = get_zips::get_zips(&cfg).await?;
+        let (zips, zips_size) = get_zips::get_zips(&app_profile.sources).await?;
         info!(
             "Found {} zip files in the source paths ({})",
             zips.len(),
@@ -84,7 +92,8 @@ impl SyncCommand {
             tokio::sync::mpsc::unbounded_channel::<(ZipEntry, bool)>();
         let write_to_disk_join_handle = tokio::spawn(async move {
             while let Some((entry, disambiguate)) = write_to_disk_rx.recv().await {
-                let destination = entry.get_splat_path(&cfg.destination, disambiguate)?;
+                let destination =
+                    entry.get_splat_path(&app_profile.destination, disambiguate)?;
                 if !destination.exists() {
                     info!("Writing entry to {}", destination.display());
                     entry.write_to_file(&destination).await?;
