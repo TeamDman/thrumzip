@@ -1,8 +1,8 @@
-use crate::PathInsideZip;
 use crate::command::GlobalArgs;
 use crate::config_state::AppConfig;
 use crate::gather_existing_files::gather_existing_files;
 use crate::get_zips;
+use crate::path_inside_zip::PathInsideZip;
 use crate::progress::worker::track_progress;
 use crate::read_entries_from_zips;
 use crate::size_of_thing::KnownCount;

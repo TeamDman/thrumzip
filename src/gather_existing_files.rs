@@ -1,5 +1,5 @@
-use crate::PathInsideZip;
 use crate::existing_file::ExistingFile;
+use crate::path_inside_zip::PathInsideZip;
 use std::path::Path;
 use std::sync::Arc;
 use uom::si::f64::Information;

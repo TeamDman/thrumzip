@@ -1,5 +1,5 @@
-use crate::PathInsideZip;
-use crate::PathToZip;
+use crate::path_inside_zip::PathInsideZip;
+use crate::path_to_zip::PathToZip;
 use crate::zip_entry::ZipEntry;
 use eyre::bail;
 use positioned_io::RandomAccessFile;

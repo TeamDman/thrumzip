@@ -1,6 +1,6 @@
-use crate::PathInsideZip;
-use crate::PathToZip;
 use crate::get_splat_path::get_splat_path;
+use crate::path_inside_zip::PathInsideZip;
+use crate::path_to_zip::PathToZip;
 use crate::size_of_thing::KnownCount;
 use crate::size_of_thing::KnownSize;
 use eyre::Context;

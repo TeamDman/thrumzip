@@ -1,5 +1,5 @@
-use crate::PathInsideZip;
-use crate::PathToZip;
+use crate::path_inside_zip::PathInsideZip;
+use crate::path_to_zip::PathToZip;
 use eyre::OptionExt;
 use std::path::Path;
 use std::path::PathBuf;
@@ -42,15 +42,11 @@ mod tests {
     use std::sync::Arc;
 
     fn create_path_inside_zip(path: &str) -> PathInsideZip {
-        PathInsideZip {
-            inner: Arc::new(PathBuf::from(path)),
-        }
+        PathInsideZip::new(Arc::new(PathBuf::from(path)))
     }
 
     fn create_path_to_zip(path: &str) -> PathToZip {
-        PathToZip {
-            inner: Arc::new(PathBuf::from(path)),
-        }
+        PathToZip::new(Arc::new(PathBuf::from(path)))
     }
 
     #[test]

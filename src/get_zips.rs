@@ -1,5 +1,5 @@
-use crate::PathToZip;
 use crate::config_state::AppConfig;
+use crate::path_to_zip::PathToZip;
 use std::path::PathBuf;
 use std::sync::Arc;
 use uom::si::f64::Information;
@@ -23,9 +23,7 @@ pub async fn get_zips(cfg: &AppConfig) -> Result<(Vec<PathToZip>, Information), 
             {
                 let meta = tokio::fs::metadata(&path).await?;
                 total_size += Information::new::<byte>(meta.len() as f64);
-                zips.push(PathToZip {
-                    inner: Arc::new(path),
-                });
+                zips.push(PathToZip::new(Arc::new(path)));
             }
         }
     }

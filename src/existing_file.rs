@@ -1,4 +1,4 @@
-use crate::PathInsideZip;
+use crate::path_inside_zip::PathInsideZip;
 use crate::size_of_thing::KnownCount;
 use crate::size_of_thing::KnownSize;
 use std::path::PathBuf;
