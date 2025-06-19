@@ -145,7 +145,7 @@ impl SyncCommand {
                     let image_extensions: HashSet<_> =
                         ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "webp", "heic"]
                             .into_iter()
-                            .map(|s| OsString::from(s))
+                            .map(OsString::from)
                             .collect();
                     let is_image = path_inside_zip
                         .extension()
@@ -211,7 +211,7 @@ impl SyncCommand {
         )
         .await?
         .into_iter()
-        .filter_map(|x| x)
+        .flatten()
         .collect_vec();
 
         info!("Waiting for write tasks to complete...");

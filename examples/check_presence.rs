@@ -26,7 +26,7 @@ async fn main() -> Result<()> {
             if path
                 .extension()
                 .and_then(|s| s.to_str())
-                .map_or(false, |ext| ext.eq_ignore_ascii_case("zip"))
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"))
             {
                 let meta = std::fs::metadata(&path)?;
                 let modified = meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);
@@ -72,7 +72,7 @@ async fn main() -> Result<()> {
                 let dir = pb
                     .parent()
                     .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "".to_string());
+                    .unwrap_or_default();
                 let file = pb.file_name().unwrap().to_string_lossy().to_string();
                 dir_map.entry(dir).or_default().insert(file);
             }
@@ -124,8 +124,8 @@ async fn main() -> Result<()> {
 
     let total_old: usize = older_map.values().map(|s| s.len()).sum();
     let total_new: usize = new_map.values().map(|s| s.len()).sum();
-    println!("Total files in old export: {}", total_old);
-    println!("Total files in new export: {}", total_new);
+    println!("Total files in old export: {total_old}");
+    println!("Total files in new export: {total_new}");
 
     Ok(())
 }

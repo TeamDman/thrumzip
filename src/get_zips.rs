@@ -19,7 +19,7 @@ pub async fn get_zips(cfg: &AppConfig) -> Result<(Vec<PathToZip>, Information), 
             if path
                 .extension()
                 .and_then(|s| s.to_str())
-                .map_or(false, |ext| ext.eq_ignore_ascii_case("zip"))
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"))
             {
                 let meta = tokio::fs::metadata(&path).await?;
                 total_size += Information::new::<byte>(meta.len() as f64);

@@ -14,7 +14,7 @@ impl ConfigShowCommand {
         // Display the current configuration
         println!("Current Configuration:");
         println!("{}", AppConfig::key().await?.file_path()?.display());
-        println!("{:#?}", cfg);
+        println!("{cfg:#?}");
 
         Ok(())
     }

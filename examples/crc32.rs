@@ -28,7 +28,7 @@ async fn main() -> Result<()> {
             if path
                 .extension()
                 .and_then(|s| s.to_str())
-                .map_or(false, |ext| ext.eq_ignore_ascii_case("zip"))
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"))
             {
                 let meta = std::fs::metadata(&path)?;
                 let modified = meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);
@@ -112,7 +112,7 @@ async fn main() -> Result<()> {
                 .to_string();
             let stats = ext_stats.entry(ext.clone()).or_default();
             // Count unique entries per extension
-            let history = global_map.entry(key.clone()).or_insert_with(Vec::new);
+            let history = global_map.entry(key.clone()).or_default();
             if history.is_empty() {
                 stats.count += 1;
             }
@@ -181,9 +181,9 @@ async fn main() -> Result<()> {
 
     // Validation summary
     println!("\nValidation summary:");
-    println!("  Checked entries: {}", total_validations);
-    println!("  Passes:          {}", total_pass);
-    println!("  Failures:        {}", total_fail);
+    println!("  Checked entries: {total_validations}");
+    println!("  Passes:          {total_pass}");
+    println!("  Failures:        {total_fail}");
 
     Ok(())
 }

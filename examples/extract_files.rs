@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
             if entry
                 .path()
                 .extension()
-                .map_or(false, |e| e.eq_ignore_ascii_case("zip"))
+                .is_some_and(|e| e.eq_ignore_ascii_case("zip"))
             {
                 zip_paths.push(PathToZip {
                     inner: entry.path(),
@@ -103,7 +103,7 @@ async fn main() -> Result<()> {
     let mut read_dir = async_fs::read_dir(&out_dir).await?;
     while let Some(entry) = read_dir.next_entry().await? {
         if let Some(fname) = entry.file_name().to_str() {
-            if let Some(nstr) = fname.splitn(2, '_').next() {
+            if let Some(nstr) = fname.split('_').next() {
                 if let Ok(n) = nstr.parse::<u32>() {
                     if n > max_n {
                         max_n = n;
@@ -121,7 +121,7 @@ async fn main() -> Result<()> {
             .file_name()
             .and_then(|f| f.to_str())
             .unwrap_or("");
-        let entry_dir = out_dir.join(format!("{:04}_{}", next_n, entry_filename));
+        let entry_dir = out_dir.join(format!("{next_n:04}_{entry_filename}"));
         async_fs::create_dir_all(&entry_dir).await?;
         let mut provenance = String::new();
         for (k, zip) in zips.iter().enumerate() {

@@ -106,7 +106,7 @@ async fn main() -> Result<()> {
                             if entry
                                 .path()
                                 .extension()
-                                .map_or(false, |e| e.eq_ignore_ascii_case("zip"))
+                                .is_some_and(|e| e.eq_ignore_ascii_case("zip"))
                             {
                                 zip_paths_bufs.push(entry.path());
                             }
@@ -225,7 +225,7 @@ async fn main() -> Result<()> {
                 // Find the specific entry again
                 let entry_opt = archive.entries().find(|e| {
                     e.sanitized_name()
-                        .map_or(false, |n| PathBuf::from(n) == task_entry_path_buf)
+                        .is_some_and(|n| PathBuf::from(n) == task_entry_path_buf)
                 });
 
                 if let Some(entry) = entry_opt {
@@ -322,8 +322,7 @@ async fn main() -> Result<()> {
             );
         } else {
             println!(
-                "Entry '{}': Perceptual MISMATCH found (some pairs > dist {}). Details:",
-                entry_path_display, MAX_HAMMING_DISTANCE
+                "Entry '{entry_path_display}': Perceptual MISMATCH found (some pairs > dist {MAX_HAMMING_DISTANCE}). Details:"
             );
             for instance in image_instances_results {
                 println!(

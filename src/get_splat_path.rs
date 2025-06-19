@@ -118,19 +118,11 @@ mod tests {
 
         let result = get_splat_path(&path_inside_zip, &path_to_zip, dest_dir, false).unwrap();
         // Note: PathBuf normalizes path separators based on the OS
-        let expected = if cfg!(windows) {
-            PathBuf::from("C:\\extracted\\documents\\images\\photo.jpg")
-        } else {
-            PathBuf::from("C:\\extracted\\documents\\images\\photo.jpg")
-        };
+        let expected = PathBuf::from("C:\\extracted\\documents\\images\\photo.jpg");
         assert_eq!(result, expected);
 
         let result = get_splat_path(&path_inside_zip, &path_to_zip, dest_dir, true).unwrap();
-        let expected = if cfg!(windows) {
-            PathBuf::from("C:\\extracted\\documents\\images\\photos.zip\\photo.jpg")
-        } else {
-            PathBuf::from("C:\\extracted\\documents\\images\\photos.zip\\photo.jpg")
-        };
+        let expected = PathBuf::from("C:\\extracted\\documents\\images\\photos.zip\\photo.jpg");
         assert_eq!(result, expected);
     }
 

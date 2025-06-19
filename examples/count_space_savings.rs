@@ -17,7 +17,7 @@ fn format_bytes(bytes: u64) -> String {
         b if b >= GB => format!("{:.2} GB", b as f64 / GB as f64),
         b if b >= MB => format!("{:.2} MB", b as f64 / MB as f64),
         b if b >= KB => format!("{:.2} KB", b as f64 / KB as f64),
-        _ => format!("{} B", bytes),
+        _ => format!("{bytes} B"),
     }
 }
 
@@ -49,14 +49,14 @@ async fn main() -> eyre::Result<()> {
     let new_zip_dir = r"C:\Users\TeamD\Downloads\facebookexport";
 
     // collect all .zip paths
-    let zip_paths: Vec<PathToZip> = std::fs::read_dir(&existing_zip_dir)?
+    let zip_paths: Vec<PathToZip> = std::fs::read_dir(existing_zip_dir)?
         .filter_map(Result::ok)
-        .chain(std::fs::read_dir(&new_zip_dir)?.filter_map(Result::ok))
+        .chain(std::fs::read_dir(new_zip_dir)?.filter_map(Result::ok))
         .filter(|entry| {
             entry
                 .path()
                 .extension()
-                .map_or(false, |ext| ext.eq_ignore_ascii_case("zip"))
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"))
         })
         .map(|entry| entry.path().into())
         .collect();
@@ -70,7 +70,7 @@ async fn main() -> eyre::Result<()> {
     // new: map from (zip_path, entry_path) to compressed_size
     let mut size_map: HashMap<(PathToZip, PathInsideZip), u64> = HashMap::new();
     for zip_path in &zip_paths {
-        println!("Processing {:?}", zip_path);
+        println!("Processing {zip_path:?}");
         let f = Arc::new(RandomAccessFile::open(zip_path)?);
         let archive = f.read_zip().await?;
 
@@ -85,9 +85,7 @@ async fn main() -> eyre::Result<()> {
             // assert no duplicate within the same zip
             assert!(
                 names.insert(name.clone()),
-                "Duplicate entry {:?} in archive {:?}",
-                name,
-                zip_path
+                "Duplicate entry {name:?} in archive {zip_path:?}"
             );
             // record compressed size
             size_map.insert((zip_path.clone(), name), entry.compressed_size);
@@ -180,7 +178,7 @@ async fn main() -> eyre::Result<()> {
     // Calculate total savable space (all-but-one for each entry)
     let mut total_savable = 0u64;
     let mut total_bytes = 0u64;
-    for (_entry, zips) in &entry_map {
+    for zips in entry_map.values() {
         if zips.len() > 1 {
             // Sort by size, keep one, sum the rest
             let mut sizes: Vec<u64> = zips.iter().map(|(_, s)| *s).collect();

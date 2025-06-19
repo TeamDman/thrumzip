@@ -18,6 +18,6 @@ impl Metric for PercentCompleteMetric {
         } else {
             0.0
         };
-        Ok(format!("{:.1}%", percent))
+        Ok(format!("{percent:.1}%"))
     }
 }

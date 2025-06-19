@@ -22,9 +22,9 @@ fn main() {
     let gb = bytes.get::<gigabyte>();
 
     println!("{:.2} bytes", bytes.get::<byte>());
-    println!("{:.2} KB", kb);
-    println!("{:.2} MB", mb);
-    println!("{:.2} GB", gb);
+    println!("{kb:.2} KB");
+    println!("{mb:.2} MB");
+    println!("{gb:.2} GB");
     println!(
         "{} (auto)",
         format_size(bytes.get::<byte>() as u64, DECIMAL)

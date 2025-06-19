@@ -36,12 +36,12 @@ impl ZipEntry {
         Ok(v)
     }
     pub fn get_splat_path(&self, dest_dir: &Path, disambiguate: bool) -> eyre::Result<PathBuf> {
-        Ok(get_splat_path(
+        get_splat_path(
             &self.path_inside_zip,
             &self.path_to_zip,
             dest_dir,
             disambiguate,
-        )?)
+        )
     }
     pub async fn write_to_file(&self, dest: &Path) -> eyre::Result<()> {
         let Some(parent) = dest.parent() else {

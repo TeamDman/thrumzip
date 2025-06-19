@@ -54,7 +54,7 @@ async fn main() -> Result<()> {
             if entry
                 .path()
                 .extension()
-                .map_or(false, |e| e.eq_ignore_ascii_case("zip"))
+                .is_some_and(|e| e.eq_ignore_ascii_case("zip"))
             {
                 zip_paths.push(PathToZip {
                     inner: entry.path(),

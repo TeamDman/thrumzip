@@ -44,9 +44,9 @@ fn main() -> Result<()> {
     for result in rows {
         let (name, data) = result?;
         println!("Retrieved image '{}' ({} bytes)", name, data.len());
-        let filename = format!("{}.png", name);
+        let filename = format!("{name}.png");
         fs::write(&filename, &data)?;
-        println!("Saved image to {}", filename);
+        println!("Saved image to {filename}");
     }
 
     Ok(())

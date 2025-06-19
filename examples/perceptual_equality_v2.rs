@@ -86,7 +86,7 @@ async fn main() -> Result<()> {
             let p = entry?.path();
             if p.extension()
                 .and_then(|s| s.to_str())
-                .map_or(false, |e| e.eq_ignore_ascii_case("zip"))
+                .is_some_and(|e| e.eq_ignore_ascii_case("zip"))
             {
                 zip_files.push(PathToZip { inner: p });
             }
@@ -102,7 +102,6 @@ async fn main() -> Result<()> {
     let mut scan_set = JoinSet::new();
     for zip in &zip_files {
         let z = zip.clone();
-        let image_exts = image_exts.clone();
         scan_set.spawn(async move {
             let f = Arc::new(RandomAccessFile::open(&z.inner)?);
             let arch = f.read_zip().await?;
@@ -239,7 +238,7 @@ async fn main() -> Result<()> {
         let exceeding_names = exceeding_names.clone();
         let stats_exceed = stats_exceed.clone();
         let stats_ok = stats_ok.clone();
-        let start = start.clone();
+        let start = start;
         let iter_count = iter_count.clone();
         thread::spawn(move || {
             loop {

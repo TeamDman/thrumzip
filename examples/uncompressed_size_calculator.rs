@@ -17,7 +17,7 @@ fn format_bytes(bytes: u64) -> String {
         b if b >= GB => format!("{:.2} GB", b as f64 / GB as f64),
         b if b >= MB => format!("{:.2} MB", b as f64 / MB as f64),
         b if b >= KB => format!("{:.2} KB", b as f64 / KB as f64),
-        _ => format!("{} B", bytes),
+        _ => format!("{bytes} B"),
     }
 }
 
@@ -37,7 +37,7 @@ async fn main() -> Result<()> {
             if path
                 .extension()
                 .and_then(|s| s.to_str())
-                .map_or(false, |ext| ext.eq_ignore_ascii_case("zip"))
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"))
             {
                 let meta = std::fs::metadata(&path)?;
                 let modified = meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);

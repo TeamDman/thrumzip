@@ -66,17 +66,17 @@ impl KnownSize for DateTime<Local> {}
 impl KnownSize for Arc<RandomAccessFile> {}
 impl KnownSize for OsStr {
     fn size_in_bytes(&self) -> usize {
-        std::mem::size_of::<Self>() + self.len() as usize
+        std::mem::size_of::<Self>() + self.len()
     }
 }
 impl KnownSize for PathBuf {
     fn size_in_bytes(&self) -> usize {
-        std::mem::size_of::<Self>() + self.as_os_str().len() as usize
+        std::mem::size_of::<Self>() + self.as_os_str().len()
     }
 }
 impl KnownSize for &str {
     fn size_in_bytes(&self) -> usize {
-        std::mem::size_of::<Self>() + self.len() as usize
+        std::mem::size_of::<Self>() + self.len()
     }
 }
 impl KnownSize for Entry {
