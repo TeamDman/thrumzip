@@ -34,7 +34,7 @@ async fn main() -> Result<()> {
     // Map each entry name to the set of zip archives containing it
     let mut entry_map: HashMap<PathInsideZip, HashSet<PathToZip>> = HashMap::new();
     for zip in &zip_paths {
-        let f = Arc::new(RandomAccessFile::open(&zip)?);
+        let f = Arc::new(RandomAccessFile::open(zip)?);
         let archive = f.read_zip().await?;
         for entry in archive.entries() {
             let name_buf = entry
@@ -91,7 +91,7 @@ async fn main() -> Result<()> {
         async_fs::create_dir_all(&entry_dir).await?;
         let mut provenance = String::new();
         for (k, zip) in zips.iter().enumerate() {
-            let f = Arc::new(RandomAccessFile::open(&zip)?);
+            let f = Arc::new(RandomAccessFile::open(zip)?);
             let archive = f.read_zip().await?;
             let entry = archive
                 .entries()

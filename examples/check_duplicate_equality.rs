@@ -34,7 +34,7 @@ async fn main() -> Result<()> {
     // Map each entry name to the list of zip archives containing it
     let mut entry_map: HashMap<PathInsideZip, Vec<PathToZip>> = HashMap::new();
     for zip in &zip_paths {
-        let f = Arc::new(RandomAccessFile::open(&zip)?);
+        let f = Arc::new(RandomAccessFile::open(zip)?);
         let archive = f.read_zip().await?;
         for entry in archive.entries() {
             let name_buf = entry
@@ -50,7 +50,7 @@ async fn main() -> Result<()> {
         println!("Checking entry {}", name.display());
         let mut hashes = Vec::new();
         for zip in &zips {
-            let f = Arc::new(RandomAccessFile::open(&zip)?);
+            let f = Arc::new(RandomAccessFile::open(zip)?);
             let archive = f.read_zip().await?;
             // this is super inefficient
             if let Some(entry) = archive.entries().find(|e| {

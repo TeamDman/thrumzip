@@ -6,7 +6,7 @@ use serde::Serialize;
 use std::path::PathBuf;
 
 /// Application configuration persisted on disk
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
 pub struct Profiles {
     pub profiles: Vec<Profile>,
     pub active_profile: Option<String>,
@@ -53,15 +53,6 @@ impl Profile {
 }
 
 pub const DEFAULT_IMAGE_SIMILARITY_THRESHOLD: u32 = 5;
-
-impl Default for Profiles {
-    fn default() -> Self {
-        Profiles {
-            profiles: vec![],
-            active_profile: None,
-        }
-    }
-}
 
 #[async_trait]
 impl PersistableState for Profiles {

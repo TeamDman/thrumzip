@@ -194,11 +194,9 @@ async fn main() -> Result<()> {
         // clone required counters
         let processed_batches = processed_batches.clone();
         let processed_bytes = processed_bytes.clone();
-        let total_bytes = total_bytes;
         let exceeding_names = exceeding_names.clone();
         let stats_exceed = stats_exceed.clone();
         let stats_ok = stats_ok.clone();
-        let start = start;
         let iter_count = iter_count.clone();
         thread::spawn(move || {
             loop {

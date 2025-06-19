@@ -48,18 +48,17 @@ impl ProfileAddCommand {
 
         let similarity = {
             let similarity = prompt_line(&format!(
-                "Enter the similarity threshold for images [{}]: ",
-                DEFAULT_IMAGE_SIMILARITY_THRESHOLD
+                "Enter the similarity threshold for images [{DEFAULT_IMAGE_SIMILARITY_THRESHOLD}]: "
             ))
             .await
             .wrap_err("Failed to read similarity threshold")?;
             let similarity = similarity.trim();
-            let similarity = if !similarity.is_empty() {
+
+            if !similarity.is_empty() {
                 similarity.parse().wrap_err("Invalid similarity value")?
             } else {
                 DEFAULT_IMAGE_SIMILARITY_THRESHOLD
-            };
-            similarity
+            }
         };
 
         // Push the new profile to the config

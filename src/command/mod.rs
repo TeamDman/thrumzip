@@ -1,3 +1,4 @@
+#[allow(clippy::module_inception)]
 mod command;
 pub mod profile_list_command;
 pub mod profile_show_command;

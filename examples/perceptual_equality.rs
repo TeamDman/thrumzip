@@ -69,7 +69,7 @@ async fn main() -> Result<()> {
     let mut entry_map: HashMap<PathInsideZip, Vec<RawEntryInfo>> = HashMap::new();
     for zip_path_obj in &zip_paths {
         info!("Scanning zip: {}", zip_path_obj.display());
-        let f = match RandomAccessFile::open(&zip_path_obj) {
+        let f = match RandomAccessFile::open(zip_path_obj) {
             Ok(file) => Arc::new(file),
             Err(e) => {
                 error!("Failed to open zip {}: {}", zip_path_obj.display(), e);
