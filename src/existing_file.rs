@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use uom::si::f64::Information;
 use uom::si::information::byte;
 
+#[derive(Debug)]
 pub enum ExistingFile {
     Unambiguous {
         path_inside_zip: PathInsideZip,
