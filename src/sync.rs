@@ -218,8 +218,12 @@ impl SyncCommand {
         write_to_disk_join_handle.await??;
 
         if !unprocessed.is_empty() {
+            let count_by_extension = unprocessed
+                .iter()
+                .map(|(path_inside_zip, _)| path_inside_zip.extension().unwrap_or_default())
+                .counts();
             bail!(
-                "There are {} entries that could not be processed ({})",
+                "There are {} entries that could not be processed ({}). Extensions: {count_by_extension:?}",
                 unprocessed.len(),
                 unprocessed.human_size()
             );
