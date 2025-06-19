@@ -10,7 +10,7 @@ impl ProfileShowCommand {
         let current_profile = profiles
             .current()
             .ok_or_eyre("No active profile found. Please set an active profile first.")?;
-        eprintln!("Current Profile:");
+        eprintln!("Current Profile: {}", current_profile.name);
         println!(
             "{}",
             serde_json::to_string_pretty(current_profile)
