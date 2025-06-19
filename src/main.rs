@@ -1,23 +1,8 @@
-#![allow(async_fn_in_trait)]
-pub mod command;
-pub mod state;
-pub mod existing_file;
-pub mod gather_existing_files;
-pub mod get_splat_path;
-pub mod get_zips;
-pub mod init_tracing;
-pub mod metrics;
-pub mod path_inside_zip;
-pub mod path_to_zip;
-pub mod progress;
-pub mod read_entries_from_zips;
-pub mod size_of_thing;
-pub mod zip_entry;
 use clap::CommandFactory;
 use clap::FromArgMatches;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::WrapErr;
-use command::Command;
+use thrumzip::command::Command;
 use tracing::Level;
 
 #[tokio::main]
@@ -34,7 +19,7 @@ async fn main() -> Result<()> {
     } else {
         Level::INFO
     };
-    init_tracing::init_tracing(level);
+    thrumzip::init_tracing::init_tracing(level);
     // Handle subcommand
     cmd.handle().await.wrap_err("Command execution failed")?;
     Ok(())

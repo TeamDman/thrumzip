@@ -1,5 +1,6 @@
 // filepath: g:\Programming\Repos\meta-takeout\examples\check_crc32.rs
 use crc32fast::Hasher as Crc32Hasher;
+use eyre::Context;
 use eyre::Result;
 use eyre::eyre;
 use positioned_io::RandomAccessFile;
@@ -10,13 +11,20 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::SystemTime;
+use thrumzip::state::profiles::Profile;
 use tokio::task::JoinSet;
+use tracing::Level;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    color_eyre::install().wrap_err("Failed to install color_eyre")?;
+    thrumzip::init_tracing::init_tracing(Level::INFO);
+    // let profile = thrumzip::state::profiles::Profiles::load_and_get_active_profile().await?;
+    let profile = Profile::new_example();
+
     // Directories containing zip files
-    let existing_zip_dir = r"C:\Users\TeamD\OneDrive\Documents\Backups\meta\facebook 2024-06";
-    let new_zip_dir = r"C:\Users\TeamD\Downloads\facebookexport";
+    let existing_zip_dir = &profile.sources[0];
+    let new_zip_dir = &profile.sources[1];
     let dirs = [existing_zip_dir, new_zip_dir];
 
     // Collect all zip file paths with modification times

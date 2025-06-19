@@ -1,54 +1,25 @@
+use eyre::Context;
 use eyre::OptionExt;
 use eyre::Result;
 use eyre::eyre;
-use holda::Holda;
 use img_hash::HashAlg;
 use img_hash::Hasher as ImgHasher;
 use img_hash::HasherConfig;
 use img_hash::ImageHash;
 use positioned_io::RandomAccessFile;
 use rc_zip_tokio::ReadZip;
+use thrumzip::get_zips::get_zips;
+use thrumzip::path_inside_zip::PathInsideZip;
+use thrumzip::state::profiles::Profile;
+use tracing::Level;
 use std::collections::HashMap;
-use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
+use thrumzip::path_to_zip::PathToZip;
 use tokio::task::JoinSet;
 use tracing::error;
 use tracing::info;
 use tracing::warn;
-
-// Define PathToZip and PathInsideZip structs
-#[derive(Holda)]
-#[holda(NoDisplay)]
-pub struct PathToZip {
-    inner: PathBuf,
-}
-impl AsRef<Path> for PathToZip {
-    fn as_ref(&self) -> &Path {
-        self.inner.as_ref()
-    }
-}
-impl std::fmt::Display for PathToZip {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.inner.display())
-    }
-}
-
-#[derive(Holda)]
-#[holda(NoDisplay)]
-pub struct PathInsideZip {
-    inner: PathBuf,
-}
-impl AsRef<Path> for PathInsideZip {
-    fn as_ref(&self) -> &Path {
-        self.inner.as_ref()
-    }
-}
-impl std::fmt::Display for PathInsideZip {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.inner.display())
-    }
-}
 
 const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "bmp", "tiff", "webp"];
 // Max Hamming distance for two images to be considered "similar".
@@ -77,49 +48,16 @@ fn create_image_hasher() -> ImgHasher {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    color_eyre::install()?;
-    tracing_subscriber::fmt()
-        .with_timer(tracing_subscriber::fmt::time::uptime())
-        .with_max_level(tracing::Level::INFO)
-        .init();
+    color_eyre::install().wrap_err("Failed to install color_eyre")?;
+    thrumzip::init_tracing::init_tracing(Level::INFO);
+    // let profile = thrumzip::state::profiles::Profiles::load_and_get_active_profile().await?;
+    let profile = Profile::new_example();
 
-    let existing_zip_dir = r"C:\Users\TeamD\OneDrive\Documents\Backups\meta\facebook 2024-06";
-    let new_zip_dir = r"C:\Users\TeamD\Downloads\facebookexport";
-    let dirs = [existing_zip_dir, new_zip_dir];
-
-    let mut zip_paths_bufs: Vec<PathBuf> = Vec::new();
-    for dir_str in &dirs {
-        let dir_path = Path::new(dir_str);
-        if !dir_path.exists() {
-            warn!("Directory {} does not exist, skipping.", dir_path.display());
-            continue;
-        }
-        if !dir_path.is_dir() {
-            warn!("Path {} is not a directory, skipping.", dir_path.display());
-            continue;
-        }
-        match std::fs::read_dir(dir_path) {
-            Ok(entries) => {
-                for entry_result in entries {
-                    match entry_result {
-                        Ok(entry) => {
-                            if entry
-                                .path()
-                                .extension()
-                                .is_some_and(|e| e.eq_ignore_ascii_case("zip"))
-                            {
-                                zip_paths_bufs.push(entry.path());
-                            }
-                        }
-                        Err(e) => error!("Failed to read entry in {}: {}", dir_path.display(), e),
-                    }
-                }
-            }
-            Err(e) => error!("Failed to read directory {}: {}", dir_path.display(), e),
-        }
+    // Collect zip files from both directories
+    let (zip_paths, _) = get_zips(&profile.sources).await?;
+    if zip_paths.is_empty() {
+        eyre::bail!("No zip files found in {:?}", profile.sources);
     }
-
-    let zip_paths: Vec<PathToZip> = zip_paths_bufs.into_iter().map(PathToZip::from).collect();
 
     if zip_paths.is_empty() {
         error!("No zip files found or accessible in the specified directories. Exiting.");
@@ -130,18 +68,18 @@ async fn main() -> Result<()> {
     // Phase 1: Grab all entries and their raw info
     let mut entry_map: HashMap<PathInsideZip, Vec<RawEntryInfo>> = HashMap::new();
     for zip_path_obj in &zip_paths {
-        info!("Scanning zip: {}", zip_path_obj);
-        let f = match RandomAccessFile::open(&zip_path_obj.inner) {
+        info!("Scanning zip: {}", zip_path_obj.display());
+        let f = match RandomAccessFile::open(&zip_path_obj) {
             Ok(file) => Arc::new(file),
             Err(e) => {
-                error!("Failed to open zip {}: {}", zip_path_obj, e);
+                error!("Failed to open zip {}: {}", zip_path_obj.display(), e);
                 continue;
             }
         };
         let archive = match f.read_zip().await {
             Ok(arch) => arch,
             Err(e) => {
-                error!("Failed to read zip {}: {}", zip_path_obj, e);
+                error!("Failed to read zip {}: {}", zip_path_obj.display(), e);
                 continue;
             }
         };
@@ -152,7 +90,7 @@ async fn main() -> Result<()> {
             // For now, assuming directories might end with a '/'
             let name = entry
                 .sanitized_name()
-                .ok_or_eyre(eyre!("Invalid entry name in {}", zip_path_obj))?;
+                .ok_or_eyre(eyre!("Invalid entry name in {}", zip_path_obj.display()))?;
             if name.ends_with('/') {
                 continue;
             }
@@ -160,11 +98,11 @@ async fn main() -> Result<()> {
             let name_buf = match entry.sanitized_name() {
                 Some(name) => name,
                 None => {
-                    warn!("Skipping entry with invalid name in {}", zip_path_obj);
+                    warn!("Skipping entry with invalid name in {}", zip_path_obj.display());
                     continue;
                 }
             };
-            let path_inside_zip = PathInsideZip::from(PathBuf::from(name_buf));
+            let path_inside_zip = PathInsideZip::new(Arc::new(PathBuf::from(name_buf)));
 
             let raw_info = RawEntryInfo {
                 zip_path: zip_path_obj.clone(),
@@ -180,10 +118,10 @@ async fn main() -> Result<()> {
 
     // Phase 2: Process duplicates for perceptual hashing
     for (entry_path_obj, raw_infos) in entry_map.into_iter().filter(|(_, v)| v.len() > 1) {
-        let entry_path_display = entry_path_obj.to_string(); // For logging
+        let entry_path_display = entry_path_obj.display(); // For logging
 
         let extension = entry_path_obj
-            .inner
+            
             .extension()
             .and_then(|s| s.to_str())
             .unwrap_or("")
@@ -203,20 +141,20 @@ async fn main() -> Result<()> {
 
         for raw_info in raw_infos {
             let task_zip_path = raw_info.zip_path.clone();
-            let task_entry_path_buf = entry_path_obj.inner.clone(); // Path inside zip
+            let task_entry_path_buf = entry_path_obj.clone(); // Path inside zip
             let task_compressed_size = raw_info.compressed_size;
 
             tasks.spawn(async move {
-                let f = match RandomAccessFile::open(&task_zip_path.inner) {
+                let f = match RandomAccessFile::open(&task_zip_path) {
                     Ok(file) => Arc::new(file),
-                    Err(e) => return Err(eyre!("Zip {}: Failed to open: {}", task_zip_path, e)),
+                    Err(e) => return Err(eyre!("Zip {}: Failed to open: {}", task_zip_path.display(), e)),
                 };
                 let archive = match f.read_zip().await {
                     Ok(arch) => arch,
                     Err(e) => {
                         return Err(eyre!(
                             "Zip {}: Failed to read archive: {}",
-                            task_zip_path,
+                            task_zip_path.display(),
                             e
                         ));
                     }
@@ -225,7 +163,7 @@ async fn main() -> Result<()> {
                 // Find the specific entry again
                 let entry_opt = archive.entries().find(|e| {
                     e.sanitized_name()
-                        .is_some_and(|n| PathBuf::from(n) == task_entry_path_buf)
+                        .is_some_and(|n| PathBuf::from(n) == **task_entry_path_buf)
                 });
 
                 if let Some(entry) = entry_opt {
@@ -235,7 +173,7 @@ async fn main() -> Result<()> {
                             return Err(eyre!(
                                 "Entry '{}' in Zip {}: Failed to read bytes: {}",
                                 task_entry_path_buf.display(),
-                                task_zip_path,
+                                task_zip_path.display(),
                                 e
                             ));
                         }
@@ -258,7 +196,7 @@ async fn main() -> Result<()> {
                     Err(eyre!(
                         "Entry '{}' unexpectedly not found in zip {} during hashing phase.",
                         task_entry_path_buf.display(),
-                        task_zip_path
+                        task_zip_path.display()
                     ))
                 }
             });
@@ -316,7 +254,7 @@ async fn main() -> Result<()> {
                 "Entry '{}': Perceptually SIMILAR across {} files. Smallest: '{}' ({} bytes). (Max dist: {})",
                 entry_path_display,
                 image_instances_results.len(),
-                smallest_instance.zip_path,
+                smallest_instance.zip_path.display(),
                 smallest_instance.compressed_size,
                 MAX_HAMMING_DISTANCE
             );
@@ -327,7 +265,7 @@ async fn main() -> Result<()> {
             for instance in image_instances_results {
                 println!(
                     "  - File: '{}', Hash: {}, Size: {} bytes",
-                    instance.zip_path,
+                    instance.zip_path.display(),
                     instance.hash.to_base64(),
                     instance.compressed_size
                 );

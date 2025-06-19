@@ -11,7 +11,6 @@ use crate::zip_entry::ZipEntry;
 use clap::Args;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::WrapErr;
-use eye_config::persistable_state::PersistableState;
 use image::load_from_memory;
 use img_hash::HashAlg;
 use img_hash::HasherConfig;
@@ -29,18 +28,10 @@ pub struct SyncCommand;
 
 impl SyncCommand {
     pub async fn handle(self, _global: GlobalArgs) -> Result<()> {
-        info!("Loading configuration...");
-        let cfg = Profiles::load()
+        info!("Loading profile...");
+        let app_profile = Profiles::load_and_get_active_profile()
             .await
-            .wrap_err("Failed to load configuration")?;
-        let Some(profile_name) = cfg.active_profile else {
-            return Err(eyre::eyre!(
-                "No active profile set in configuration! run `config --help`"
-            ));
-        };
-        let Some(app_profile) = cfg.profiles.into_iter().find(|p| p.name == profile_name) else {
-            return Err(eyre::eyre!("No profile found with name `{}`", profile_name));
-        };
+            .wrap_err("Failed to load active profile")?;
 
         info!(
             "Gathering files from destination: {}",
@@ -92,8 +83,7 @@ impl SyncCommand {
             tokio::sync::mpsc::unbounded_channel::<(ZipEntry, bool)>();
         let write_to_disk_join_handle = tokio::spawn(async move {
             while let Some((entry, disambiguate)) = write_to_disk_rx.recv().await {
-                let destination =
-                    entry.get_splat_path(&app_profile.destination, disambiguate)?;
+                let destination = entry.get_splat_path(&app_profile.destination, disambiguate)?;
                 if !destination.exists() {
                     info!("Writing entry to {}", destination.display());
                     entry.write_to_file(&destination).await?;

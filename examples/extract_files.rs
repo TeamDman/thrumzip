@@ -1,80 +1,46 @@
 use cloud_terrastodon_user_input::Choice;
 use cloud_terrastodon_user_input::FzfArgs;
 use cloud_terrastodon_user_input::pick_many;
+use eyre::Context;
 use eyre::OptionExt;
 use eyre::Result;
 use eyre::eyre;
-use holda::Holda;
 use positioned_io::RandomAccessFile;
 use rc_zip_tokio::ReadZip;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::fs;
-use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
+use thrumzip::get_zips::get_zips;
+use thrumzip::path_inside_zip::PathInsideZip;
+use thrumzip::path_to_zip::PathToZip;
+use thrumzip::state::profiles::Profile;
 use tokio::fs as async_fs;
-
-#[derive(Holda)]
-#[holda(NoDisplay)]
-pub struct PathToZip {
-    inner: PathBuf,
-}
-impl AsRef<Path> for PathToZip {
-    fn as_ref(&self) -> &Path {
-        self.inner.as_ref()
-    }
-}
-
-#[derive(Holda)]
-#[holda(NoDisplay)]
-pub struct PathInsideZip {
-    inner: PathBuf,
-}
-impl AsRef<Path> for PathInsideZip {
-    fn as_ref(&self) -> &Path {
-        self.inner.as_ref()
-    }
-}
+use tracing::Level;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let existing_zip_dir = r"C:\Users\TeamD\OneDrive\Documents\Backups\meta\facebook 2024-06";
-    let new_zip_dir = r"C:\Users\TeamD\Downloads\facebookexport";
-    let dirs = [existing_zip_dir, new_zip_dir];
+    color_eyre::install().wrap_err("Failed to install color_eyre")?;
+    thrumzip::init_tracing::init_tracing(Level::INFO);
+    // let profile = thrumzip::state::profiles::Profiles::load_and_get_active_profile().await?;
+    let profile = Profile::new_example();
 
     // Collect zip files from both directories
-    let mut zip_paths: Vec<PathToZip> = Vec::new();
-    for dir in &dirs {
-        for entry in fs::read_dir(dir)? {
-            let entry = entry?;
-            if entry
-                .path()
-                .extension()
-                .is_some_and(|e| e.eq_ignore_ascii_case("zip"))
-            {
-                zip_paths.push(PathToZip {
-                    inner: entry.path(),
-                });
-            }
-        }
-    }
+    let (zip_paths, _) = get_zips(&profile.sources).await?;
     if zip_paths.is_empty() {
-        eyre::bail!("No zip files found in the provided directories");
+        eyre::bail!("No zip files found in {:?}", profile.sources);
     }
 
     // Map each entry name to the set of zip archives containing it
     let mut entry_map: HashMap<PathInsideZip, HashSet<PathToZip>> = HashMap::new();
     for zip in &zip_paths {
-        let f = Arc::new(RandomAccessFile::open(&zip.inner)?);
+        let f = Arc::new(RandomAccessFile::open(&zip)?);
         let archive = f.read_zip().await?;
         for entry in archive.entries() {
             let name_buf = entry
                 .sanitized_name()
                 .ok_or_eyre(eyre!("Invalid entry name"))?;
-            let name = PathInsideZip {
-                inner: PathBuf::from(name_buf),
-            };
+            let name = PathInsideZip::new(Arc::new(PathBuf::from(name_buf)));
             entry_map.entry(name).or_default().insert(zip.clone());
         }
     }
@@ -83,7 +49,7 @@ async fn main() -> Result<()> {
     let mut choices: Vec<Choice<(PathInsideZip, HashSet<PathToZip>)>> = Vec::new();
     for (name, zips) in &entry_map {
         choices.push(Choice {
-            key: format!("{} ({})", name.inner.display(), zips.len()),
+            key: format!("{} ({})", name.display(), zips.len()),
             value: (name.clone(), zips.clone()),
         });
     }
@@ -125,13 +91,13 @@ async fn main() -> Result<()> {
         async_fs::create_dir_all(&entry_dir).await?;
         let mut provenance = String::new();
         for (k, zip) in zips.iter().enumerate() {
-            let f = Arc::new(RandomAccessFile::open(&zip.inner)?);
+            let f = Arc::new(RandomAccessFile::open(&zip)?);
             let archive = f.read_zip().await?;
             let entry = archive
                 .entries()
                 .find(|e| {
                     e.sanitized_name()
-                        .map(|n| PathBuf::from(n) == *entry_name_path)
+                        .map(|n| PathBuf::from(n) == **entry_name_path)
                         .unwrap_or(false)
                 })
                 .ok_or_eyre(eyre!("Entry not found in zip"))?;
@@ -147,7 +113,7 @@ async fn main() -> Result<()> {
                 "{:04}_{} <- {}\n",
                 k + 1,
                 entry_filename,
-                zip.inner.display()
+                zip.display()
             ));
             println!("Extracted {} to {}", entry_filename, out_path.display());
         }

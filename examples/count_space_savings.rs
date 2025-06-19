@@ -1,13 +1,17 @@
+use eyre::Context;
 use eyre::OptionExt;
 use eyre::eyre;
-use holda::Holda;
 use positioned_io::RandomAccessFile;
 use rc_zip_tokio::ReadZip;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
+use thrumzip::get_zips::get_zips;
+use thrumzip::path_inside_zip::PathInsideZip;
+use thrumzip::path_to_zip::PathToZip;
+use thrumzip::state::profiles::Profile;
+use tracing::Level;
 
 fn format_bytes(bytes: u64) -> String {
     const KB: u64 = 1024;
@@ -21,47 +25,17 @@ fn format_bytes(bytes: u64) -> String {
     }
 }
 
-#[derive(Holda)]
-#[holda(NoDisplay)]
-pub struct PathToZip {
-    inner: PathBuf,
-}
-impl AsRef<Path> for PathToZip {
-    fn as_ref(&self) -> &Path {
-        self.inner.as_ref()
-    }
-}
-
-#[derive(Holda)]
-#[holda(NoDisplay)]
-pub struct PathInsideZip {
-    inner: PathBuf,
-}
-impl AsRef<Path> for PathInsideZip {
-    fn as_ref(&self) -> &Path {
-        self.inner.as_ref()
-    }
-}
-
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
-    let existing_zip_dir = r"C:\Users\TeamD\OneDrive\Documents\Backups\meta\facebook 2024-06";
-    let new_zip_dir = r"C:\Users\TeamD\Downloads\facebookexport";
+    color_eyre::install().wrap_err("Failed to install color_eyre")?;
+    thrumzip::init_tracing::init_tracing(Level::INFO);
+    // let profile = thrumzip::state::profiles::Profiles::load_and_get_active_profile().await?;
+    let profile = Profile::new_example();
 
-    // collect all .zip paths
-    let zip_paths: Vec<PathToZip> = std::fs::read_dir(existing_zip_dir)?
-        .filter_map(Result::ok)
-        .chain(std::fs::read_dir(new_zip_dir)?.filter_map(Result::ok))
-        .filter(|entry| {
-            entry
-                .path()
-                .extension()
-                .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"))
-        })
-        .map(|entry| entry.path().into())
-        .collect();
+    // Collect zip files from both directories
+    let (zip_paths, _) = get_zips(&profile.sources).await?;
     if zip_paths.is_empty() {
-        eyre::bail!("No zip files found in {:?}", existing_zip_dir);
+        eyre::bail!("No zip files found in {:?}", profile.sources);
     }
     println!("Found {} zip files", zip_paths.len());
 
@@ -76,11 +50,11 @@ async fn main() -> eyre::Result<()> {
 
         let mut names = HashSet::new();
         for entry in archive.entries() {
-            let name: PathInsideZip = PathBuf::from(
+            let name: PathInsideZip = Arc::new(PathBuf::from(
                 &entry
                     .sanitized_name()
                     .ok_or_eyre(eyre!("Entry had evil name: {:?}", entry.name))?,
-            )
+            ))
             .into();
             // assert no duplicate within the same zip
             assert!(

@@ -1,8 +1,10 @@
-// filepath: g:\Programming\Repos\meta-takeout\examples\uncompressed_size_calculator.rs
+use eyre::Context;
 use eyre::Result;
 use eyre::eyre;
 use positioned_io::RandomAccessFile;
 use rc_zip_tokio::ReadZip;
+use thrumzip::state::profiles::Profile;
+use tracing::Level;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -23,14 +25,14 @@ fn format_bytes(bytes: u64) -> String {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Directories containing zip files
-    let existing_zip_dir = r"C:\Users\TeamD\OneDrive\Documents\Backups\meta\facebook 2024-06";
-    let new_zip_dir = r"C:\Users\TeamD\Downloads\facebookexport";
-    let dirs = [existing_zip_dir, new_zip_dir];
+    color_eyre::install().wrap_err("Failed to install color_eyre")?;
+    thrumzip::init_tracing::init_tracing(Level::INFO);
+    // let profile = thrumzip::state::profiles::Profiles::load_and_get_active_profile().await?;
+    let profile = Profile::new_example();
 
     // Collect zip paths with modification times
     let mut zip_paths: Vec<(PathBuf, SystemTime)> = Vec::new();
-    for dir in &dirs {
+    for dir in &profile.sources {
         for entry in std::fs::read_dir(dir)? {
             let entry = entry?;
             let path = entry.path();
@@ -48,7 +50,6 @@ async fn main() -> Result<()> {
     if zip_paths.is_empty() {
         eyre::bail!("No zip files found in specified directories");
     }
-    println!("Found {} zip files", zip_paths.len());
 
     // Parallel scan: spawn a task for each zip to build its local map
     let mut tasks = JoinSet::new();

@@ -762,9 +762,9 @@ dependencies = [
 
 [[package]]
 name = "eye_config"
-version = "0.4.0"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00038431012f401c04081736eb82ffe895329a7e0443ee07e64fc53a0a756eb8"
+checksum = "278d9835078385412e769f68dd1e6f28d8082b91a0ae02b5e06741948dc56bef"
 dependencies = [
  "async-recursion",
  "async-trait",

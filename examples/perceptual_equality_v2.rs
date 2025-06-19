@@ -1,6 +1,6 @@
+use eyre::Context;
 use eyre::Result;
 use eyre::eyre;
-use holda::Holda;
 use humansize::DECIMAL;
 use humansize::format_size;
 use humantime::format_duration;
@@ -23,31 +23,13 @@ use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
+use thrumzip::get_zips::get_zips;
+use thrumzip::path_inside_zip::PathInsideZip;
+use thrumzip::path_to_zip::PathToZip;
+use thrumzip::state::profiles::Profile;
 use tokio::task::JoinSet;
+use tracing::Level;
 use tracing::info;
-use tracing::warn;
-
-#[derive(Holda)]
-#[holda(NoDisplay)]
-struct PathToZip {
-    inner: PathBuf,
-}
-impl AsRef<Path> for PathToZip {
-    fn as_ref(&self) -> &Path {
-        &self.inner
-    }
-}
-
-#[derive(Holda)]
-#[holda(NoDisplay)]
-struct PathInsideZip {
-    inner: PathBuf,
-}
-impl AsRef<Path> for PathInsideZip {
-    fn as_ref(&self) -> &Path {
-        &self.inner
-    }
-}
 
 /// Maximum Hamming distance threshold for perceptual difference
 const MAX_HAMMING: u32 = 1;
@@ -66,44 +48,24 @@ struct RawInfo {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    color_eyre::install()?;
-    tracing_subscriber::fmt().init();
+    color_eyre::install().wrap_err("Failed to install color_eyre")?;
+    thrumzip::init_tracing::init_tracing(Level::INFO);
+    // let profile = thrumzip::state::profiles::Profiles::load_and_get_active_profile().await?;
+    let profile = Profile::new_example();
 
-    // Directories to scan
-    let dirs = [
-        r"C:\Users\TeamD\OneDrive\Documents\Backups\meta\facebook 2024-06",
-        r"C:\Users\TeamD\Downloads\facebookexport",
-    ];
-    // Collect all ZIP file paths
-    let mut zip_files = Vec::new();
-    for d in &dirs {
-        let dir = Path::new(d);
-        if !dir.is_dir() {
-            warn!("{} is not a directory, skipping", d);
-            continue;
-        }
-        for entry in std::fs::read_dir(dir)? {
-            let p = entry?.path();
-            if p.extension()
-                .and_then(|s| s.to_str())
-                .is_some_and(|e| e.eq_ignore_ascii_case("zip"))
-            {
-                zip_files.push(PathToZip { inner: p });
-            }
-        }
+    // Collect zip files from both directories
+    let (zip_paths, _) = get_zips(&profile.sources).await?;
+    if zip_paths.is_empty() {
+        eyre::bail!("No zip files found in {:?}", profile.sources);
     }
-    if zip_files.is_empty() {
-        eyre::bail!("No ZIP files found");
-    }
-    info!("Found {} ZIPs", zip_files.len());
 
     // Phase 1: scan entries and CRCs in parallel
     let image_exts = ["png", "jpg", "jpeg", "gif", "bmp", "tiff", "webp"];
     let mut scan_set = JoinSet::new();
-    for zip in &zip_files {
-        let z = zip.clone();
+    for zip in &zip_paths {
+        let zip_file_path = zip.clone();
         scan_set.spawn(async move {
-            let f = Arc::new(RandomAccessFile::open(&z.inner)?);
+            let f = Arc::new(RandomAccessFile::open(&zip_file_path)?);
             let arch = f.read_zip().await?;
             let mut list = Vec::new();
             for ent in arch.entries() {
@@ -120,13 +82,11 @@ async fn main() -> Result<()> {
                         } else {
                             continue;
                         }
-                        let key = PathInsideZip {
-                            inner: PathBuf::from(name),
-                        };
+                        let key = PathInsideZip::new(Arc::new(PathBuf::from(name)));
                         list.push((
                             key,
                             RawInfo {
-                                zip: z.clone(),
+                                zip: zip_file_path.clone(),
                                 crc: ent.crc32,
                                 size: ent.uncompressed_size,
                             },
@@ -299,26 +259,30 @@ async fn main() -> Result<()> {
     }
 
     // Phase 2: process each entry batch, compute perceptual hashes and distances per group
-    for (pi, infos) in diff_entries {
+    for (path_inside_zip, infos) in diff_entries {
         iter_count.fetch_add(1, Ordering::Relaxed);
         // info!("Processing perceptual hashes for {}", pi.display());
         // remember count before moving infos
         let infos_count = infos.len();
         let mut group_set = JoinSet::new();
         for info in infos {
-            let pi = pi.clone();
-            let zi = info.zip.clone();
+            let path_inside_zip = path_inside_zip.clone();
+            let path_to_zip = info.zip.clone();
             let size = info.size;
             group_set.spawn(async move {
-                let f = Arc::new(RandomAccessFile::open(&zi.inner)?);
+                let f = Arc::new(RandomAccessFile::open(&path_to_zip)?);
                 let arch = f.read_zip().await?;
                 let ent = arch
-                    .by_name(pi.inner.to_string_lossy().as_ref())
-                    .ok_or(eyre!("Missing {} in {}", pi.display(), zi.display()))?;
+                    .by_name(path_inside_zip.to_string_lossy().as_ref())
+                    .ok_or(eyre!(
+                        "Missing {} in {}",
+                        path_inside_zip.display(),
+                        path_to_zip.display()
+                    ))?;
                 let data = ent.bytes().await?;
                 let img = load_from_memory(&data)?;
                 let hash = image_hasher().hash_image(&img);
-                Ok::<_, eyre::Report>((zi, hash, size))
+                Ok::<_, eyre::Report>((path_to_zip, hash, size))
             });
         }
 
@@ -327,10 +291,10 @@ async fn main() -> Result<()> {
         let mut results: Vec<(PathToZip, ImageHash)> = Vec::with_capacity(infos_count);
         while let Some(res) = group_set.join_next().await {
             // res yields (PathToZip, ImageHash, size)
-            let (zi, h, sz) = res??;
+            let (path_to_zip, image_hash, processed_bytes_inc) = res??;
             // accumulate processed bytes
-            processed_bytes.fetch_add(sz, Ordering::Relaxed);
-            results.push((zi, h));
+            processed_bytes.fetch_add(processed_bytes_inc, Ordering::Relaxed);
+            results.push((path_to_zip, image_hash));
         }
 
         // Compute and print distances for this entry batch
@@ -352,7 +316,10 @@ async fn main() -> Result<()> {
             }
         }
         if local_exceed {
-            exceeding_names.lock().unwrap().insert(pi.inner.clone());
+            exceeding_names
+                .lock()
+                .unwrap()
+                .insert(path_inside_zip.clone());
         }
         processed_batches.fetch_add(1, Ordering::Relaxed);
     }

@@ -17,6 +17,18 @@ impl Profiles {
             .as_ref()
             .and_then(|name| self.profiles.iter().find(|p| p.name == *name))
     }
+    pub fn into_current(self) -> Option<Profile> {
+        self.active_profile
+            .and_then(|name| self.profiles.into_iter().find(|p| p.name == name))
+    }
+    pub async fn load_and_get_active_profile() -> eyre::Result<Profile> {
+        let profiles = Profiles::load().await?;
+        if let Some(profile) = profiles.into_current() {
+            Ok(profile)
+        } else {
+            eyre::bail!("No active profile set");
+        }
+    }
 }
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Profile {
@@ -28,6 +40,16 @@ pub struct Profile {
     pub similarity: u32,
     /// Name of the profile
     pub name: String,
+}
+impl Profile {
+    pub fn new_example() -> Self {
+        Profile {
+            destination: "test_data/dest".into(),
+            name: "example".into(),
+            sources: vec!["test_data/source".into()],
+            similarity: DEFAULT_IMAGE_SIMILARITY_THRESHOLD,
+        }
+    }
 }
 
 pub const DEFAULT_IMAGE_SIMILARITY_THRESHOLD: u32 = 5;
