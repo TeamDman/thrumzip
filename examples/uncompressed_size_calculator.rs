@@ -3,13 +3,13 @@ use eyre::Result;
 use eyre::eyre;
 use positioned_io::RandomAccessFile;
 use rc_zip_tokio::ReadZip;
-use thrumzip::state::profiles::Profile;
-use tracing::Level;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::SystemTime;
+use thrumzip::state::profiles::Profile;
 use tokio::task::JoinSet;
+use tracing::Level;
 
 fn format_bytes(bytes: u64) -> String {
     const KB: u64 = 1024;

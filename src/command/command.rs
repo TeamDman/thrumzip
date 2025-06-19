@@ -1,11 +1,9 @@
+use super::profile_command::ProfileCommand;
+use super::sync::SyncCommand;
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 use eyre::Result;
-
-use super::profile_command::ProfileCommand;
-use super::sync::SyncCommand;
-
 
 #[derive(Parser)]
 #[clap(version)]
@@ -20,7 +18,7 @@ pub struct Command {
 pub enum Commands {
     /// View and manage Thrumzip CLI profiles
     Profile(ProfileCommand),
-    /// Synchronize active profile output directory with the active profile source directories 
+    /// Synchronize active profile output directory with the active profile source directories
     Sync(SyncCommand),
 }
 

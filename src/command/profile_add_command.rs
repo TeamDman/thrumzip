@@ -1,6 +1,6 @@
 use crate::command::GlobalArgs;
-use crate::state::profiles::Profile;
 use crate::state::profiles::DEFAULT_IMAGE_SIMILARITY_THRESHOLD;
+use crate::state::profiles::Profile;
 use crate::state::profiles::Profiles;
 use cloud_terrastodon_user_input::prompt_line;
 use color_eyre::eyre::Result;

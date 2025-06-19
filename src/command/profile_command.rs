@@ -1,11 +1,11 @@
-use crate::command::GlobalArgs;
-use clap::Args;
-use clap::Subcommand;
-use color_eyre::eyre::Result;
 use super::profile_add_command::ProfileAddCommand;
 use super::profile_list_command::ProfileListCommand;
 use super::profile_show_command::ProfileShowCommand;
 use super::profile_use_command::ProfileUseCommand;
+use crate::command::GlobalArgs;
+use clap::Args;
+use clap::Subcommand;
+use color_eyre::eyre::Result;
 
 #[derive(Args)]
 pub struct ProfileCommand {
@@ -25,7 +25,7 @@ pub enum ProfileCommandInner {
     Use {
         /// Name of the profile to set as active
         name: Option<String>,
-    }
+    },
 }
 
 impl ProfileCommand {

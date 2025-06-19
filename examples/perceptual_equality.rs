@@ -8,15 +8,15 @@ use img_hash::HasherConfig;
 use img_hash::ImageHash;
 use positioned_io::RandomAccessFile;
 use rc_zip_tokio::ReadZip;
-use thrumzip::get_zips::get_zips;
-use thrumzip::path_inside_zip::PathInsideZip;
-use thrumzip::state::profiles::Profile;
-use tracing::Level;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use thrumzip::get_zips::get_zips;
+use thrumzip::path_inside_zip::PathInsideZip;
 use thrumzip::path_to_zip::PathToZip;
+use thrumzip::state::profiles::Profile;
 use tokio::task::JoinSet;
+use tracing::Level;
 use tracing::error;
 use tracing::info;
 use tracing::warn;
@@ -98,7 +98,10 @@ async fn main() -> Result<()> {
             let name_buf = match entry.sanitized_name() {
                 Some(name) => name,
                 None => {
-                    warn!("Skipping entry with invalid name in {}", zip_path_obj.display());
+                    warn!(
+                        "Skipping entry with invalid name in {}",
+                        zip_path_obj.display()
+                    );
                     continue;
                 }
             };
@@ -121,7 +124,6 @@ async fn main() -> Result<()> {
         let entry_path_display = entry_path_obj.display(); // For logging
 
         let extension = entry_path_obj
-            
             .extension()
             .and_then(|s| s.to_str())
             .unwrap_or("")
@@ -147,7 +149,13 @@ async fn main() -> Result<()> {
             tasks.spawn(async move {
                 let f = match RandomAccessFile::open(&task_zip_path) {
                     Ok(file) => Arc::new(file),
-                    Err(e) => return Err(eyre!("Zip {}: Failed to open: {}", task_zip_path.display(), e)),
+                    Err(e) => {
+                        return Err(eyre!(
+                            "Zip {}: Failed to open: {}",
+                            task_zip_path.display(),
+                            e
+                        ));
+                    }
                 };
                 let archive = match f.read_zip().await {
                     Ok(arch) => arch,

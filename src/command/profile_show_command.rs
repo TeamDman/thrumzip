@@ -11,7 +11,11 @@ impl ProfileShowCommand {
             .current()
             .ok_or_eyre("No active profile found. Please set an active profile first.")?;
         eprintln!("Current Profile:");
-        println!("{}", serde_json::to_string_pretty(current_profile).unwrap_or_else(|_| "Failed to serialize profile".to_string()));
+        println!(
+            "{}",
+            serde_json::to_string_pretty(current_profile)
+                .unwrap_or_else(|_| "Failed to serialize profile".to_string())
+        );
         Ok(())
     }
 }
