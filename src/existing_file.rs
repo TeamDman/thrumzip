@@ -15,7 +15,7 @@ pub enum ExistingFile {
     Ambiguous {
         path_inside_zip: PathInsideZip,
         zip_name: String,
-        paths_on_disk: Vec<PathBuf>,
+        path_on_disk: PathBuf,
         size: Information,
     },
 }
@@ -35,10 +35,7 @@ impl KnownSize for ExistingFile {
 }
 impl KnownCount for ExistingFile {
     fn count(&self) -> usize {
-        match self {
-            ExistingFile::Unambiguous { .. } => 1,
-            ExistingFile::Ambiguous { paths_on_disk, .. } => paths_on_disk.len(),
-        }
+        1
     }
 }
 

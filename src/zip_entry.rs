@@ -22,6 +22,16 @@ pub struct ZipEntry {
     pub file: Arc<RandomAccessFile>,
     pub entry: Entry,
 }
+impl std::fmt::Debug for ZipEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ZipEntry")
+            .field("path_to_zip", &self.path_to_zip)
+            .field("path_inside_zip", &self.path_inside_zip)
+            .field("file", &self.file)
+            .field("entry", &"omitted from debug output")
+            .finish()
+    }
+}
 impl ZipEntry {
     pub fn reader(&self) -> impl AsyncRead + Send + 'static {
         EntryReader::new(&self.entry, |offset| self.file.cursor_at(offset))

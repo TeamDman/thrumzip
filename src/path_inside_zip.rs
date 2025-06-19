@@ -25,3 +25,18 @@ impl KnownCount for PathInsideZip {
         1
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::path_inside_zip::PathInsideZip;
+    use std::path::PathBuf;
+    use std::sync::Arc;
+
+    #[test]
+    fn it_works() -> eyre::Result<()> {
+        let left = PathInsideZip::from(Arc::new(PathBuf::from("a/b/c.txt")));
+        let right = PathInsideZip::from(Arc::new(PathBuf::from(r"a\b\c.txt")));
+        assert_eq!(left, right);
+        Ok(())
+    }
+}
