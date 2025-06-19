@@ -6,8 +6,9 @@ use eyre::Result;
 use super::profile_command::ProfileCommand;
 use super::sync::SyncCommand;
 
+
 #[derive(Parser)]
-#[clap(name = "meta-takeout", version)]
+#[clap(version)]
 pub struct Command {
     #[clap(flatten)]
     pub global_args: GlobalArgs,
@@ -17,7 +18,9 @@ pub struct Command {
 
 #[derive(Subcommand)]
 pub enum Commands {
+    /// View and manage Thrumzip CLI profiles
     Profile(ProfileCommand),
+    /// Synchronize active profile output directory with the active profile source directories 
     Sync(SyncCommand),
 }
 

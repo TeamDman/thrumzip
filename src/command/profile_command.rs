@@ -2,7 +2,6 @@ use crate::command::GlobalArgs;
 use clap::Args;
 use clap::Subcommand;
 use color_eyre::eyre::Result;
-
 use super::profile_add_command::ProfileAddCommand;
 use super::profile_list_command::ProfileListCommand;
 use super::profile_show_command::ProfileShowCommand;
