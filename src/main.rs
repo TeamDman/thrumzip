@@ -1,6 +1,6 @@
 #![allow(async_fn_in_trait)]
 pub mod command;
-pub mod config_state;
+pub mod state;
 pub mod existing_file;
 pub mod gather_existing_files;
 pub mod get_splat_path;

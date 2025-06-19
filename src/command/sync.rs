@@ -1,5 +1,4 @@
 use crate::command::GlobalArgs;
-use crate::config_state::AppConfig;
 use crate::gather_existing_files::gather_existing_files;
 use crate::get_zips;
 use crate::path_inside_zip::PathInsideZip;
@@ -7,6 +6,7 @@ use crate::progress::worker::track_progress;
 use crate::read_entries_from_zips;
 use crate::size_of_thing::KnownCount;
 use crate::size_of_thing::KnownSize;
+use crate::state::profiles::Profiles;
 use crate::zip_entry::ZipEntry;
 use clap::Args;
 use color_eyre::eyre::Result;
@@ -30,7 +30,7 @@ pub struct SyncCommand;
 impl SyncCommand {
     pub async fn handle(self, _global: GlobalArgs) -> Result<()> {
         info!("Loading configuration...");
-        let cfg = AppConfig::load()
+        let cfg = Profiles::load()
             .await
             .wrap_err("Failed to load configuration")?;
         let Some(profile_name) = cfg.active_profile else {

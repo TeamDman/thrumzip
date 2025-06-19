@@ -3,7 +3,7 @@ use clap::Parser;
 use clap::Subcommand;
 use eyre::Result;
 
-use super::config_command::ConfigCommand;
+use super::profile_command::ProfileCommand;
 use super::sync::SyncCommand;
 
 #[derive(Parser)]
@@ -17,7 +17,7 @@ pub struct Command {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    Config(ConfigCommand),
+    Profile(ProfileCommand),
     Sync(SyncCommand),
 }
 
@@ -34,7 +34,7 @@ pub struct GlobalArgs {
 impl Command {
     pub async fn handle(self) -> Result<()> {
         match self.command {
-            Commands::Config(cmd) => cmd.handle(self.global_args).await,
+            Commands::Profile(cmd) => cmd.handle(self.global_args).await,
             Commands::Sync(cmd) => cmd.handle(self.global_args).await,
         }
     }

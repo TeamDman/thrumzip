@@ -1,29 +1,27 @@
 use crate::command::GlobalArgs;
-use crate::config_state::AppConfig;
-use crate::config_state::AppProfile;
-use crate::config_state::DEFAULT_IMAGE_SIMILARITY_THRESHOLD;
+use crate::state::profiles::Profile;
+use crate::state::profiles::DEFAULT_IMAGE_SIMILARITY_THRESHOLD;
+use crate::state::profiles::Profiles;
 use cloud_terrastodon_user_input::prompt_line;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::WrapErr;
 use color_eyre::eyre::bail;
 use eye_config::persistable_state::PersistableState;
 
-pub struct ConfigInitCommand;
-impl ConfigInitCommand {
+pub struct ProfileAddCommand;
+impl ProfileAddCommand {
     pub async fn handle(&self, global: GlobalArgs) -> Result<()> {
         if global.non_interactive {
-            bail!("Cannot initialize config in non-interactive mode");
+            bail!("Cannot initialize profile in non-interactive mode");
         }
-        // Load existing or default config
-        let mut config = AppConfig::load()
-            .await
-            .wrap_err("Failed to load existing config")?;
+        // Load existing or default profile
+        let mut profiles = Profiles::load().await?;
 
         // Prompt the user for the new profile details
-        let name = prompt_line("Enter the name of the new config profile: ")
+        let name = prompt_line("Enter the name of the new profile: ")
             .await
             .wrap_err("Failed to read profile name")?;
-        if config.profiles.iter().any(|p| p.name == name) {
+        if profiles.profiles.iter().any(|p| p.name == name) {
             bail!("A profile with the name '{}' already exists", name);
         }
 
@@ -34,9 +32,11 @@ impl ConfigInitCommand {
         let sources = {
             let mut sources = Vec::new();
             loop {
-                let src = prompt_line("Enter a source directory (empty to finish): ")
-                    .await
-                    .wrap_err("Failed to read source directory")?;
+                let src = prompt_line(
+                    "Enter a source directory containing zip files (empty to finish): ",
+                )
+                .await
+                .wrap_err("Failed to read source directory")?;
                 let src = src.trim().trim_matches('"');
                 if src.is_empty() {
                     break;
@@ -63,20 +63,20 @@ impl ConfigInitCommand {
         };
 
         // Push the new profile to the config
-        config.profiles.push(AppProfile {
+        profiles.profiles.push(Profile {
             destination: destination.into(),
             sources,
             similarity,
             name,
         });
-        
-        // Save config
-        config.save().await.wrap_err("Failed to save config")?;
+
+        // Save profiles
+        profiles.save().await?;
 
         // Show location
-        let path = AppConfig::key().await?.file_path()?;
-        println!("Configuration saved to {}", path.display());
-        
+        let path = Profiles::key().await?.file_path()?;
+        println!("Profiles saved to {}", path.display());
+
         Ok(())
     }
 }

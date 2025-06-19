@@ -7,12 +7,19 @@ use std::path::PathBuf;
 
 /// Application configuration persisted on disk
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct AppConfig {
-    pub profiles: Vec<AppProfile>,
+pub struct Profiles {
+    pub profiles: Vec<Profile>,
     pub active_profile: Option<String>,
 }
+impl Profiles {
+    pub fn current(&self) -> Option<&Profile> {
+        self.active_profile
+            .as_ref()
+            .and_then(|name| self.profiles.iter().find(|p| p.name == *name))
+    }
+}
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct AppProfile {
+pub struct Profile {
     /// Destination directory for extracted files
     pub destination: PathBuf,
     /// Source directories containing zip files
@@ -25,9 +32,9 @@ pub struct AppProfile {
 
 pub const DEFAULT_IMAGE_SIMILARITY_THRESHOLD: u32 = 5;
 
-impl Default for AppConfig {
+impl Default for Profiles {
     fn default() -> Self {
-        AppConfig {
+        Profiles {
             profiles: vec![],
             active_profile: None,
         }
@@ -35,7 +42,7 @@ impl Default for AppConfig {
 }
 
 #[async_trait]
-impl PersistableState for AppConfig {
+impl PersistableState for Profiles {
     async fn key() -> eyre::Result<PersistenceKey> {
         Ok(PersistenceKey::new("meta-takeout", "config.json"))
     }
