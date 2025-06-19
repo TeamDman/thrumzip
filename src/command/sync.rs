@@ -219,7 +219,7 @@ impl SyncCommand {
                 .map(|(path_inside_zip, _)| path_inside_zip.extension().unwrap_or_default())
                 .counts();
             warn!(
-                "There are {} entries that could not be disambiguated ({}). Extensions: {count_by_extension:?}",
+                "There are {} entries that could not be confirmed equivalent ({}). Extensions: {count_by_extension:?}",
                 unprocessed.len(),
                 unprocessed.human_size()
             );
