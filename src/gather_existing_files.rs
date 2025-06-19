@@ -9,6 +9,9 @@ pub async fn gather_existing_files(dir: &Path) -> eyre::Result<Vec<ExistingFile>
     let mut files = Vec::new();
     let mut stack = vec![dir.to_path_buf()];
     while let Some(d) = stack.pop() {
+        if !d.exists() {
+            continue; // Skip non-existent directories
+        }
         let mut rd = tokio::fs::read_dir(&d).await?;
         while let Some(e) = rd.next_entry().await? {
             let p = e.path();
