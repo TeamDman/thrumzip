@@ -12,7 +12,6 @@ use clap::Args;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::WrapErr;
 use eye_config::persistable_state::PersistableState;
-use eyre::bail;
 use image::load_from_memory;
 use img_hash::HashAlg;
 use img_hash::HasherConfig;
@@ -23,6 +22,7 @@ use std::ffi::OsString;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::info;
+use tracing::warn;
 
 #[derive(Args)]
 pub struct SyncCommand;
@@ -125,7 +125,7 @@ impl SyncCommand {
             |progress| info!("Spawning disambiguation tasks {progress}"),
             |progress| info!("Completing disambiguation tasks {progress}"),
             |_progress, elapsed| info!("Disambiguation complete in {elapsed}!"),
-            move |(path_inside_zip, entries): (PathInsideZip, Vec<ZipEntry>)| {
+            {let write_to_disk_tx = write_to_disk_tx.clone();move |(path_inside_zip, entries): (PathInsideZip, Vec<ZipEntry>)| {
                 let write_to_disk_tx2 = write_to_disk_tx.clone();
                 let hasher_config = hasher_config.clone();
                 async move {
@@ -206,7 +206,7 @@ impl SyncCommand {
 
                     Ok(Some((path_inside_zip, entries)))
                 }
-            },
+            }},
             24, // we don't want to use all 32 because that probably causes thrashing with cpu scheduling from OS?
         )
         .await?
@@ -214,20 +214,30 @@ impl SyncCommand {
         .flatten()
         .collect_vec();
 
-        info!("Waiting for write tasks to complete...");
-        write_to_disk_join_handle.await??;
-
         if !unprocessed.is_empty() {
             let count_by_extension = unprocessed
                 .iter()
                 .map(|(path_inside_zip, _)| path_inside_zip.extension().unwrap_or_default())
                 .counts();
-            bail!(
-                "There are {} entries that could not be processed ({}). Extensions: {count_by_extension:?}",
+            warn!(
+                "There are {} entries that could not be disambiguated ({}). Extensions: {count_by_extension:?}",
                 unprocessed.len(),
                 unprocessed.human_size()
             );
+            warn!(
+                "Writing with disambiguation enabled for {} entries",
+                unprocessed.len()
+            );
+            for (_path_inside_zip, entries) in unprocessed {
+                for entry in entries {
+                    write_to_disk_tx.send((entry, true))?;
+                }
+            }
         }
+        drop(write_to_disk_tx);
+
+        info!("Waiting for write tasks to complete...");
+        write_to_disk_join_handle.await??;
 
         Ok(())
     }
