@@ -1,5 +1,6 @@
 use super::profile_command::ProfileCommand;
-use super::sync::SyncCommand;
+use super::sync_command::SyncCommand;
+use super::validate_command::ValidateCommand;
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
@@ -20,6 +21,8 @@ pub enum Commands {
     Profile(ProfileCommand),
     /// Synchronize active profile output directory with the active profile source directories
     Sync(SyncCommand),
+    /// Audits the active profile destination directory for discrepencies with the zip file contents of the source directories
+    Validate(ValidateCommand),
 }
 
 #[derive(Args)]
@@ -37,6 +40,7 @@ impl Command {
         match self.command {
             Commands::Profile(cmd) => cmd.handle(self.global_args).await,
             Commands::Sync(cmd) => cmd.handle(self.global_args).await,
+            Commands::Validate(cmd) => cmd.handle(self.global_args).await,
         }
     }
 }

@@ -157,3 +157,11 @@ impl<A: KnownCount, B: KnownCount, C: KnownCount> KnownCount for (A, B, C) {
         self.0.count() + self.1.count() + self.2.count()
     }
 }
+impl<T> KnownCount for &T
+where
+    T: KnownCount,
+{
+    fn count(&self) -> usize {
+        (*self).count()
+    }
+}
